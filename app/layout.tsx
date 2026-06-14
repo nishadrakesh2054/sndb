@@ -1,15 +1,5 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
-import Footer from "@/components/Footer";
-import Header from "@/components/Header";
-import LogoTop from "@/components/LogoTop";
-import NoticePopup from "@/components/NoticePopup";
-import JsonLd from "@/components/seo/JsonLd";
-import Topbar from "@/components/Topbar";
-import {
-  buildOrganizationJsonLd,
-  buildWebsiteJsonLd,
-} from "@/lib/seo";
 import { site } from "@/lib/site";
 
 export const metadata: Metadata = {
@@ -81,9 +71,7 @@ export const viewport: Viewport = {
 
 export default function RootLayout({
   children,
-}: Readonly<{
-  children: React.ReactNode;
-}>) {
+}: Readonly<{ children: React.ReactNode }>) {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 
   return (
@@ -96,15 +84,7 @@ export default function RootLayout({
           </>
         ) : null}
       </head>
-      <body>
-        <JsonLd data={[buildOrganizationJsonLd(), buildWebsiteJsonLd()]} />
-        <Topbar />
-        <LogoTop />
-        <Header />
-        <NoticePopup />
-        <main>{children}</main>
-        <Footer />
-      </body>
+      <body>{children}</body>
     </html>
   );
 }
