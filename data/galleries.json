@@ -1,0 +1,26 @@
+[
+  {
+    "_id": "66fcf17be9d66b319368ef60",
+    "images": [
+      "uploads\\galleries\\image-1727852923069.hero2.jpg",
+      "uploads\\galleries\\image-1727852923074.hero3.jpg",
+      "uploads\\galleries\\image-1727852923082.hero11.jpg"
+    ],
+    "createdAt": "2024-10-02T07:08:43.108Z",
+    "updatedAt": "2024-10-02T07:08:43.108Z",
+    "__v": 0
+  },
+  {
+    "_id": "66fe38922cb3ae476333dcda",
+    "images": [
+      "uploads\\galleries\\image-1727936658043.sndb1.jpg",
+      "uploads\\galleries\\image-1727936658051.sndb2.jpg",
+      "uploads\\galleries\\image-1727936658058.sndb3.jpg",
+      "uploads\\galleries\\image-1727936658066.sndb4.jpg",
+      "uploads\\galleries\\image-1727936658073.sndb5.jpg"
+    ],
+    "createdAt": "2024-10-03T06:24:18.092Z",
+    "updatedAt": "2024-10-03T06:24:18.092Z",
+    "__v": 0
+  }
+]

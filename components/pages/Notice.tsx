@@ -1,0 +1,161 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import { FaArrowRight, FaDownload } from "react-icons/fa";
+import Link from "next/link";
+import {
+  getAllNotices,
+  getAllPdfs,
+  type NoticeItem,
+  type PdfItem,
+} from "@/data/staticApi";
+import { getMediaUrl } from "@/lib/mediaUrl";
+import {
+  PageContainer,
+  PageHeader,
+  PageSection,
+} from "@/components/PageHeader";
+
+const formatDate = (timestamp: string): string => {
+  const date = new Date(timestamp);
+  return date.toLocaleDateString("en-US", {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  });
+};
+
+const SectionCard = ({
+  title,
+  children,
+}: {
+  title: string;
+  children: React.ReactNode;
+}) => (
+  <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm md:p-8">
+    <h2 className="mb-6 inline-block border-b-2 border-green-600 pb-2 text-lg font-semibold text-gray-900">
+      {title}
+    </h2>
+    {children}
+  </div>
+);
+
+const Notice: React.FC = () => {
+  const [pdfs, setPdfs] = useState<PdfItem[]>([]);
+  const [notices, setNotices] = useState<NoticeItem[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    setPdfs(getAllPdfs());
+    setNotices(getAllNotices());
+    setLoading(false);
+  }, []);
+
+  return (
+    <>
+      <PageSection>
+        <PageContainer>
+          <PageHeader
+            label="Notice"
+            title={
+              <>
+                Notices & <span className="text-green-600">Documents</span>
+              </>
+            }
+            subtitle="Official announcements and downloadable documents from SNDB."
+          />
+
+          {loading ? (
+            <div className="grid gap-8 lg:grid-cols-2">
+              {[...Array(2)].map((_, index) => (
+                <div
+                  key={index}
+                  className="h-80 animate-pulse rounded-xl border border-gray-200 bg-white"
+                />
+              ))}
+            </div>
+          ) : (
+            <div className="grid gap-8 lg:grid-cols-2">
+              <SectionCard title="Latest Notices">
+                {notices.length === 0 ? (
+                  <p className="text-sm text-gray-500">
+                    No notices available at the moment.
+                  </p>
+                ) : (
+                  <ul className="space-y-4">
+                    {notices.map((item) => (
+                      <li
+                        key={item._id}
+                        className="flex gap-4 rounded-lg border border-gray-100 p-3 transition hover:border-green-200 hover:bg-emerald-50/40"
+                      >
+                        <Link
+                          href={`/notice/${item._id}`}
+                          className="shrink-0 overflow-hidden rounded-md border border-gray-200 bg-white"
+                        >
+                          <img
+                            src={getMediaUrl(item.images)}
+                            alt={item.title}
+                            loading="lazy"
+                            className="h-20 w-20 object-cover sm:h-24 sm:w-24"
+                          />
+                        </Link>
+                        <div className="flex min-w-0 flex-1 flex-col justify-center">
+                          <time className="text-xs font-medium uppercase tracking-wide text-green-700">
+                            {formatDate(item.createdAt)}
+                          </time>
+                          <h3 className="mt-1 line-clamp-2 text-base font-semibold text-gray-900">
+                            {item.title}
+                          </h3>
+                          <Link
+                            href={`/notice/${item._id}`}
+                            className="group mt-2 inline-flex items-center gap-1.5 text-sm font-semibold text-green-700 hover:text-green-800"
+                          >
+                            View Notice
+                            <FaArrowRight className="h-3 w-3 transition-transform group-hover:translate-x-0.5" />
+                          </Link>
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </SectionCard>
+
+              <SectionCard title="Important Documents">
+                {pdfs.length === 0 ? (
+                  <p className="text-sm text-gray-500">
+                    No documents available at the moment.
+                  </p>
+                ) : (
+                  <ul className="space-y-3">
+                    {pdfs.map((pdf) => (
+                      <li
+                        key={pdf._id}
+                        className="flex flex-col gap-3 rounded-lg border border-gray-100 p-4 sm:flex-row sm:items-center sm:justify-between"
+                      >
+                        <h3 className="text-sm font-semibold text-gray-800 sm:pr-4">
+                          {pdf.title}
+                        </h3>
+                        <a
+                          href={getMediaUrl(pdf.filePath)}
+                          download
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex shrink-0 items-center justify-center gap-2 rounded-full border border-green-600 px-4 py-2 text-sm font-semibold text-green-700 transition hover:bg-green-600 hover:text-white"
+                        >
+                          <FaDownload className="h-3.5 w-3.5" />
+                          Download
+                        </a>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </SectionCard>
+            </div>
+          )}
+        </PageContainer>
+      </PageSection>
+    </>
+  );
+};
+
+export default Notice;

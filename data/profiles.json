@@ -1,0 +1,233 @@
+[
+  {
+    "_id": "66fd1ddae9d66b319368f0c1",
+    "title": "DR. Rakesh Shah",
+    "image": "uploads\\profile\\image-1727864282725.doctor3.jpeg",
+    "position": "President",
+    "phone": 1234567898,
+    "email": "a877@gmail.com",
+    "createdAt": "2024-10-02T10:18:02.739Z",
+    "updatedAt": "2024-10-02T10:18:02.739Z",
+    "__v": 0
+  },
+  {
+    "_id": "66fd1e00e9d66b319368f0c4",
+    "title": "Dr. Dinesh Prasad Koirala",
+    "image": "uploads\\profile\\image-1727864320631.doctor1.jpeg",
+    "position": "Immidiate Past President",
+    "phone": 12434576789,
+    "email": "b877@gmail.com",
+    "createdAt": "2024-10-02T10:18:40.635Z",
+    "updatedAt": "2024-10-02T10:18:40.635Z",
+    "__v": 0
+  },
+  {
+    "_id": "66fd1e56e9d66b319368f0c9",
+    "title": "Dr. Ritesh Ghimire",
+    "image": "uploads\\profile\\image-1727864406555.doctor14.jpeg",
+    "position": "General Secretery",
+    "phone": 13243245346745,
+    "email": "c877@gmail.com",
+    "createdAt": "2024-10-02T10:20:06.560Z",
+    "updatedAt": "2024-10-02T10:20:06.560Z",
+    "__v": 0
+  },
+  {
+    "_id": "66fd1ebae9d66b319368f0cc",
+    "title": "Dr.Nehal Asharaf",
+    "image": "uploads\\profile\\image-1727864506965.blog1.jpeg",
+    "position": "Secretary",
+    "phone": 123456789,
+    "email": "d877@gmail.com",
+    "createdAt": "2024-10-02T10:21:46.970Z",
+    "updatedAt": "2024-10-02T10:21:46.970Z",
+    "__v": 0
+  },
+  {
+    "_id": "66fd1ed8e9d66b319368f0cf",
+    "title": "Dr. Pinky Shah",
+    "image": "uploads\\profile\\image-1727864536194.doctor10.jpeg",
+    "position": "Joint Secretery",
+    "phone": 123423464567,
+    "email": "e877@gmail.com",
+    "createdAt": "2024-10-02T10:22:16.197Z",
+    "updatedAt": "2024-10-02T10:22:16.197Z",
+    "__v": 0
+  },
+  {
+    "_id": "66fd1f10e9d66b319368f0d4",
+    "title": "Dr. Amrita Shrestha",
+    "image": "uploads\\profile\\image-1727864592537.doctor19.jpeg",
+    "position": "Treasure",
+    "phone": 123345456567,
+    "email": "f877@gmail.com",
+    "createdAt": "2024-10-02T10:23:12.540Z",
+    "updatedAt": "2024-10-02T10:23:12.540Z",
+    "__v": 0
+  },
+  {
+    "_id": "66fd1f2de9d66b319368f0d7",
+    "title": "Dr. Abhishek Raj",
+    "image": "uploads\\profile\\image-1727864621729.doctor18.jpeg",
+    "position": "Joint Treasure",
+    "phone": 123534564567,
+    "email": "skesh877@gmail.com",
+    "createdAt": "2024-10-02T10:23:41.732Z",
+    "updatedAt": "2024-10-02T10:23:41.732Z",
+    "__v": 0
+  },
+  {
+    "_id": "66fd1f50e9d66b319368f0da",
+    "title": "Dr. Rajendra Chaudhary (Koshi)",
+    "image": "uploads\\profile\\image-1727864656335.doctor20.jpeg",
+    "position": "Vice-President",
+    "phone": 214534534564567,
+    "email": "akesh877@gmail.com",
+    "createdAt": "2024-10-02T10:24:16.338Z",
+    "updatedAt": "2024-10-02T10:24:16.338Z",
+    "__v": 0
+  },
+  {
+    "_id": "66fd1f71e9d66b319368f0dd",
+    "title": "Dr. Amresh Karn (Madhesh)",
+    "image": "uploads\\profile\\image-1727864689790.blog1.jpeg",
+    "position": "Vice-President",
+    "phone": 145356456756,
+    "email": "h877@gmail.com",
+    "createdAt": "2024-10-02T10:24:49.795Z",
+    "updatedAt": "2024-10-02T10:24:49.795Z",
+    "__v": 0
+  },
+  {
+    "_id": "66fd1fcbe9d66b319368f0e0",
+    "title": "Dr. Pawan K. Shah (Sudurpaschim)",
+    "image": "uploads\\profile\\image-1727864779761.doctor8.jpeg",
+    "position": "Vice-President",
+    "phone": 1232332434,
+    "email": "sh877@gmail.com",
+    "createdAt": "2024-10-02T10:26:19.764Z",
+    "updatedAt": "2024-10-02T10:26:19.764Z",
+    "__v": 0
+  },
+  {
+    "_id": "66fd2008e9d66b319368f0e5",
+    "title": "Rajesh Shah",
+    "image": "uploads\\profile\\image-1727864840064.doctor13.jpeg",
+    "position": "Ext. Affairs Coordinator",
+    "phone": 12332534565,
+    "email": "sh877@gmail.com",
+    "createdAt": "2024-10-02T10:27:20.068Z",
+    "updatedAt": "2024-10-02T10:27:20.068Z",
+    "__v": 0
+  },
+  {
+    "_id": "66fd2027e9d66b319368f0e8",
+    "title": "Deepak Kumar Yadav",
+    "image": "uploads\\profile\\image-1727864871198.doctor12.jpeg",
+    "position": "Editor-in-Chief",
+    "phone": 12345667890,
+    "email": "sh877@gmail.com",
+    "createdAt": "2024-10-02T10:27:51.200Z",
+    "updatedAt": "2024-10-02T10:27:51.200Z",
+    "__v": 0
+  },
+  {
+    "_id": "66fd205ae9d66b319368f0f3",
+    "title": "Dr. Prajawal Gauchan",
+    "image": "uploads\\profile\\image-1727864922393.doctor4.jpeg",
+    "position": "Members",
+    "phone": 123456789,
+    "email": "sh877@gmail.com",
+    "createdAt": "2024-10-02T10:28:42.397Z",
+    "updatedAt": "2024-10-02T10:28:42.397Z",
+    "__v": 0
+  },
+  {
+    "_id": "66fd2082e9d66b319368f0f6",
+    "title": "Dr. Sarita Gurung",
+    "image": "uploads\\profile\\image-1727864962895.doctor2.jpeg",
+    "position": "Members",
+    "phone": 123345456567,
+    "email": "esh877@gmail.com",
+    "createdAt": "2024-10-02T10:29:22.897Z",
+    "updatedAt": "2024-10-02T10:29:22.897Z",
+    "__v": 0
+  },
+  {
+    "_id": "66fd20a9e9d66b319368f0f9",
+    "title": "Milan Subedi",
+    "image": "uploads\\profile\\image-1727865001144.doctor11.jpeg",
+    "position": "Members",
+    "phone": 1234567890,
+    "email": "sa877@gmail.com",
+    "createdAt": "2024-10-02T10:30:01.151Z",
+    "updatedAt": "2024-10-02T10:30:01.151Z",
+    "__v": 0
+  },
+  {
+    "_id": "66fd212de9d66b319368f101",
+    "title": "Dr. Shrish Silwal",
+    "image": "uploads\\profile\\image-1727865133917.doctor16.jpeg",
+    "position": "Members",
+    "phone": 1233245345654,
+    "email": "sakesh877@gmail.com",
+    "createdAt": "2024-10-02T10:32:13.921Z",
+    "updatedAt": "2024-10-02T10:32:13.921Z",
+    "__v": 0
+  },
+  {
+    "_id": "66fd2156e9d66b319368f104",
+    "title": "Dr. Mayank Acharaya",
+    "image": "uploads\\profile\\image-1727865174544.doctor12.jpeg",
+    "position": "Members",
+    "phone": 1234567890,
+    "email": "sahanira@gmail.com",
+    "createdAt": "2024-10-02T10:32:54.547Z",
+    "updatedAt": "2024-10-02T10:32:54.547Z",
+    "__v": 0
+  },
+  {
+    "_id": "66fd2173e9d66b319368f107",
+    "title": "Dr. Abhisek Tiwari",
+    "image": "uploads\\profile\\image-1727865203008.doctor15.jpeg",
+    "position": "Members",
+    "phone": 123434565467,
+    "email": "1kesh877@gmail.com",
+    "createdAt": "2024-10-02T10:33:23.013Z",
+    "updatedAt": "2024-10-02T10:33:23.013Z",
+    "__v": 0
+  },
+  {
+    "_id": "66fd2190e9d66b319368f10a",
+    "title": "Dr. Mannu Bhattarai",
+    "image": "uploads\\profile\\image-1727865232192.doctor17.jpeg",
+    "position": "members",
+    "phone": 123423564567,
+    "email": "sah877@gmail.com",
+    "createdAt": "2024-10-02T10:33:52.196Z",
+    "updatedAt": "2024-10-02T10:33:52.196Z",
+    "__v": 0
+  },
+  {
+    "_id": "66fd21abe9d66b319368f10d",
+    "title": "Dr. Ankita Palikhe",
+    "image": "uploads\\profile\\image-1727865259802.doctor7.jpeg",
+    "position": "members",
+    "phone": 12334456678,
+    "email": "akesh877@gmail.com",
+    "createdAt": "2024-10-02T10:34:19.805Z",
+    "updatedAt": "2024-10-02T10:34:19.805Z",
+    "__v": 0
+  },
+  {
+    "_id": "66fd21cce9d66b319368f110",
+    "title": "Dr. Manish Gurmaita",
+    "image": "uploads\\profile\\image-1727865292827.doctor6.jpeg",
+    "position": "Members",
+    "phone": 123234345456,
+    "email": "fdhjgh77@gmail.com",
+    "createdAt": "2024-10-02T10:34:52.831Z",
+    "updatedAt": "2024-10-02T10:34:52.831Z",
+    "__v": 0
+  }
+]
