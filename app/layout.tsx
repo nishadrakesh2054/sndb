@@ -1,18 +1,82 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import Footer from "@/components/Footer";
 import Header from "@/components/Header";
 import LogoTop from "@/components/LogoTop";
 import NoticePopup from "@/components/NoticePopup";
+import JsonLd from "@/components/seo/JsonLd";
 import Topbar from "@/components/Topbar";
+import {
+  buildOrganizationJsonLd,
+  buildWebsiteJsonLd,
+} from "@/lib/seo";
+import { site } from "@/lib/site";
 
 export const metadata: Metadata = {
+  metadataBase: new URL(site.url),
   title: {
-    default: "SNDB | Society of Nepal Doctors of Bangladesh",
-    template: "%s | SNDB",
+    default: site.defaultTitle,
+    template: `%s | ${site.shortName}`,
   },
-  description:
-    "Society for Nepalese Doctors from Bangladesh (SNDB) — professional network for Nepalese doctors who trained in Bangladesh.",
+  description: site.description,
+  keywords: [...site.defaultKeywords],
+  applicationName: site.shortName,
+  authors: [{ name: site.name, url: site.url }],
+  creator: site.shortName,
+  publisher: site.name,
+  category: "healthcare",
+  formatDetection: {
+    email: false,
+    address: false,
+    telephone: false,
+  },
+  alternates: {
+    canonical: site.url,
+  },
+  openGraph: {
+    type: "website",
+    locale: site.locale,
+    url: site.url,
+    siteName: site.name,
+    title: site.defaultTitle,
+    description: site.description,
+    images: [
+      {
+        url: site.defaultOgImage,
+        width: 1200,
+        height: 630,
+        alt: site.name,
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: site.defaultTitle,
+    description: site.description,
+    images: [site.defaultOgImage],
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      "max-image-preview": "large",
+      "max-snippet": -1,
+      "max-video-preview": -1,
+    },
+  },
+  icons: {
+    icon: site.defaultOgImage,
+    apple: site.defaultOgImage,
+  },
+  manifest: "/manifest.webmanifest",
+};
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  themeColor: "#16a34a",
 };
 
 export default function RootLayout({
@@ -20,14 +84,25 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+
   return (
     <html lang="en">
+      <head>
+        {supabaseUrl ? (
+          <>
+            <link rel="preconnect" href={supabaseUrl} crossOrigin="anonymous" />
+            <link rel="dns-prefetch" href={supabaseUrl} />
+          </>
+        ) : null}
+      </head>
       <body>
+        <JsonLd data={[buildOrganizationJsonLd(), buildWebsiteJsonLd()]} />
         <Topbar />
         <LogoTop />
         <Header />
         <NoticePopup />
-        {children}
+        <main>{children}</main>
         <Footer />
       </body>
     </html>

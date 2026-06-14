@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import axios from "axios";
 import {
   FaArrowRight,
   FaEnvelope,
@@ -16,6 +15,7 @@ import {
   PageHeader,
   PageSection,
 } from "@/components/PageHeader";
+import { submitContactMessage } from "@/utils/supabase/contact";
 
 interface FormData {
   name: string;
@@ -100,29 +100,18 @@ const Contact = ({ isHomeSection = false }: { isHomeSection?: boolean }) => {
     setStatus({ success: null, error: null });
 
     try {
-      const response = await axios.post(
-        `${process.env.NEXT_PUBLIC_SERVERAPI}/api/v1/notice/contact`,
-        formData
-      );
-
-      if (response.status === 200) {
-        setStatus({ success: "Thank you — your message has been sent.", error: null });
-        setFormData({ name: "", phone: "", email: "", message: "" });
-      }
+      await submitContactMessage(formData);
+      setStatus({
+        success: "Thank you — your message has been sent.",
+        error: null,
+      });
+      setFormData({ name: "", phone: "", email: "", message: "" });
     } catch (error: unknown) {
-      if (axios.isAxiosError(error)) {
-        setStatus({
-          success: null,
-          error:
-            error.response?.data?.message ||
-            "Failed to send message. Please try again later.",
-        });
-      } else {
-        setStatus({
-          success: null,
-          error: "An unexpected error occurred. Please try again later.",
-        });
-      }
+      const message =
+        error instanceof Error
+          ? error.message
+          : "Failed to send message. Please try again later.";
+      setStatus({ success: null, error: message });
     } finally {
       setIsSubmitting(false);
     }

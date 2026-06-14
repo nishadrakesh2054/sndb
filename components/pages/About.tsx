@@ -3,7 +3,9 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { FaArrowRight } from "react-icons/fa";
-import { getStatsCounts } from "@/data/staticApi";
+import { getPublishedBlogCount } from "@/utils/supabase/blogs";
+import { getMemberCount } from "@/utils/supabase/members";
+import { getPublishedNoticeCount } from "@/utils/supabase/notices";
 import {
   PageContainer,
   PageHeader,
@@ -25,13 +27,32 @@ const StatsSection = () => {
   ]);
 
   useEffect(() => {
-    const { members, notices, blogs } = getStatsCounts();
-    setStats([
-      { value: "1000+", label: "Doctors Network" },
-      { value: `${members}+`, label: "Life Members" },
-      { value: `${notices}+`, label: "Notices & Updates" },
-      { value: `${blogs}+`, label: "Blog Articles" },
-    ]);
+    const loadStats = async () => {
+      let memberCount = 0;
+      let blogCount = 0;
+      let noticeCount = 0;
+
+      try {
+        [memberCount, blogCount, noticeCount] = await Promise.all([
+          getMemberCount(),
+          getPublishedBlogCount(),
+          getPublishedNoticeCount(),
+        ]);
+      } catch {
+        memberCount = 0;
+        blogCount = 0;
+        noticeCount = 0;
+      }
+
+      setStats([
+        { value: "1000+", label: "Doctors Network" },
+        { value: `${memberCount}+`, label: "Life Members" },
+        { value: `${noticeCount}+`, label: "Notices & Updates" },
+        { value: `${blogCount}+`, label: "Blog Articles" },
+      ]);
+    };
+
+    loadStats();
   }, []);
 
   return (

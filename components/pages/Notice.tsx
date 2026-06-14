@@ -3,12 +3,13 @@
 import { useEffect, useState } from "react";
 import { FaArrowRight, FaDownload } from "react-icons/fa";
 import Link from "next/link";
+import { getDocuments, type Document } from "@/utils/supabase/documents";
 import {
-  getAllNotices,
-  getAllPdfs,
-  type NoticeItem,
-  type PdfItem,
-} from "@/data/staticApi";
+  getNoticeDisplayDate,
+  getNoticeImageAlt,
+  getPublishedNotices,
+  type Notice,
+} from "@/utils/supabase/notices";
 import { getMediaUrl } from "@/lib/mediaUrl";
 import {
   PageContainer,
@@ -41,14 +42,44 @@ const SectionCard = ({
 );
 
 const Notice: React.FC = () => {
-  const [pdfs, setPdfs] = useState<PdfItem[]>([]);
-  const [notices, setNotices] = useState<NoticeItem[]>([]);
+  const [documents, setDocuments] = useState<Document[]>([]);
+  const [notices, setNotices] = useState<Notice[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    setPdfs(getAllPdfs());
-    setNotices(getAllNotices());
-    setLoading(false);
+    let cancelled = false;
+
+    const loadData = async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        const [noticeData, documentData] = await Promise.all([
+          getPublishedNotices(),
+          getDocuments(),
+        ]);
+        if (!cancelled) {
+          setNotices(noticeData);
+          setDocuments(documentData);
+        }
+      } catch (err) {
+        if (!cancelled) {
+          setError(
+            err instanceof Error ? err.message : "Failed to load notices."
+          );
+        }
+      } finally {
+        if (!cancelled) {
+          setLoading(false);
+        }
+      }
+    };
+
+    loadData();
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   return (
@@ -77,7 +108,9 @@ const Notice: React.FC = () => {
           ) : (
             <div className="grid gap-8 lg:grid-cols-2">
               <SectionCard title="Latest Notices">
-                {notices.length === 0 ? (
+                {error ? (
+                  <p className="text-sm text-red-600">{error}</p>
+                ) : notices.length === 0 ? (
                   <p className="text-sm text-gray-500">
                     No notices available at the moment.
                   </p>
@@ -85,29 +118,29 @@ const Notice: React.FC = () => {
                   <ul className="space-y-4">
                     {notices.map((item) => (
                       <li
-                        key={item._id}
+                        key={item.id}
                         className="flex gap-4 rounded-lg border border-gray-100 p-3 transition hover:border-green-200 hover:bg-emerald-50/40"
                       >
                         <Link
-                          href={`/notice/${item._id}`}
+                          href={`/notice/${item.slug}`}
                           className="shrink-0 overflow-hidden rounded-md border border-gray-200 bg-white"
                         >
                           <img
-                            src={getMediaUrl(item.images)}
-                            alt={item.title}
+                            src={getMediaUrl(item.image_url)}
+                            alt={getNoticeImageAlt(item)}
                             loading="lazy"
                             className="h-20 w-20 object-cover sm:h-24 sm:w-24"
                           />
                         </Link>
                         <div className="flex min-w-0 flex-1 flex-col justify-center">
                           <time className="text-xs font-medium uppercase tracking-wide text-green-700">
-                            {formatDate(item.createdAt)}
+                            {formatDate(getNoticeDisplayDate(item))}
                           </time>
                           <h3 className="mt-1 line-clamp-2 text-base font-semibold text-gray-900">
                             {item.title}
                           </h3>
                           <Link
-                            href={`/notice/${item._id}`}
+                            href={`/notice/${item.slug}`}
                             className="group mt-2 inline-flex items-center gap-1.5 text-sm font-semibold text-green-700 hover:text-green-800"
                           >
                             View Notice
@@ -121,22 +154,22 @@ const Notice: React.FC = () => {
               </SectionCard>
 
               <SectionCard title="Important Documents">
-                {pdfs.length === 0 ? (
+                {documents.length === 0 ? (
                   <p className="text-sm text-gray-500">
                     No documents available at the moment.
                   </p>
                 ) : (
                   <ul className="space-y-3">
-                    {pdfs.map((pdf) => (
+                    {documents.map((document) => (
                       <li
-                        key={pdf._id}
+                        key={document.id}
                         className="flex flex-col gap-3 rounded-lg border border-gray-100 p-4 sm:flex-row sm:items-center sm:justify-between"
                       >
                         <h3 className="text-sm font-semibold text-gray-800 sm:pr-4">
-                          {pdf.title}
+                          {document.title}
                         </h3>
                         <a
-                          href={getMediaUrl(pdf.filePath)}
+                          href={getMediaUrl(document.file_path)}
                           download
                           target="_blank"
                           rel="noopener noreferrer"

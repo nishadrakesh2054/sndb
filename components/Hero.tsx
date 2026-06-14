@@ -2,29 +2,56 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { FaChevronLeft, FaChevronRight } from "react-icons/fa";
-import { getAllHeros } from "@/data/staticApi";
+import { getHeroSlides, type HeroSlide } from "@/utils/supabase/heroes";
 import { getMediaUrl } from "@/lib/mediaUrl";
-
-interface SlideData {
-  images: string;
-  title: string;
-}
 
 const AUTOPLAY_MS = 5000;
 
 const heroHeightClass =
   "h-[475px] min-h-[475px] sm:h-[575px] sm:min-h-[575px] md:h-[calc(65vh+10px)] lg:h-[calc(72vh+10px)] max-h-[835px]";
 
-const Hero: React.FC = () => {
-  const [slides, setSlides] = useState<SlideData[]>([]);
-  const [loading, setLoading] = useState(true);
+const Hero = ({ initialSlides = [] }: { initialSlides?: HeroSlide[] }) => {
+  const [slides, setSlides] = useState<HeroSlide[]>(initialSlides);
+  const [loading, setLoading] = useState(initialSlides.length === 0);
+  const [error, setError] = useState<string | null>(null);
   const [current, setCurrent] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
 
   useEffect(() => {
-    setSlides(getAllHeros().slice(0, 3));
-    setLoading(false);
-  }, []);
+    if (initialSlides.length > 0) {
+      return;
+    }
+
+    let cancelled = false;
+
+    const loadSlides = async () => {
+      setLoading(true);
+      setError(null);
+
+      try {
+        const data = await getHeroSlides(3);
+        if (!cancelled) {
+          setSlides(data);
+        }
+      } catch (err) {
+        if (!cancelled) {
+          setError(
+            err instanceof Error ? err.message : "Failed to load hero slides."
+          );
+        }
+      } finally {
+        if (!cancelled) {
+          setLoading(false);
+        }
+      }
+    };
+
+    loadSlides();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [initialSlides.length]);
 
   const goToSlide = useCallback(
     (index: number) => {
@@ -53,7 +80,7 @@ const Hero: React.FC = () => {
     );
   }
 
-  if (slides.length === 0) return null;
+  if (error || slides.length === 0) return null;
 
   const activeSlide = slides[current];
 
@@ -66,7 +93,7 @@ const Hero: React.FC = () => {
       <div className={`relative overflow-hidden ${heroHeightClass}`}>
         {slides.map((slide, index) => (
           <div
-            key={index}
+            key={slide.id}
             aria-hidden={index !== current}
             className={[
               "absolute inset-0 overflow-hidden transition-opacity duration-700 ease-in-out",
@@ -74,9 +101,11 @@ const Hero: React.FC = () => {
             ].join(" ")}
           >
             <img
-              src={getMediaUrl(slide.images)}
+              src={getMediaUrl(slide.image)}
               alt={slide.title || `Slide ${index + 1}`}
               loading={index === 0 ? "eager" : "lazy"}
+              fetchPriority={index === 0 ? "high" : "auto"}
+              decoding="async"
               className="absolute inset-0 h-[calc(100%+10px)] w-full object-cover object-center"
             />
             <div className="pointer-events-none absolute inset-x-0 bottom-0 h-44 bg-gradient-to-t from-black/50 via-black/20 to-transparent" />
@@ -129,25 +158,25 @@ const Hero: React.FC = () => {
               )}
             </div>
 
-              {slides.length > 1 && (
-                <div className="flex shrink-0 items-center gap-2.5 pb-1">
-                  {slides.map((_, index) => (
-                    <button
-                      key={index}
-                      type="button"
-                      onClick={() => goToSlide(index)}
-                      aria-label={`Go to slide ${index + 1}`}
-                      aria-current={index === current ? "true" : undefined}
-                      className={[
-                        "rounded-full transition-all duration-300",
-                        index === current
-                          ? "h-2 w-8 bg-white"
-                          : "h-2 w-2 bg-white/40 hover:bg-white/65",
-                      ].join(" ")}
-                    />
-                  ))}
-                </div>
-              )}
+            {slides.length > 1 && (
+              <div className="flex shrink-0 items-center gap-2.5 pb-1">
+                {slides.map((slide, index) => (
+                  <button
+                    key={slide.id}
+                    type="button"
+                    onClick={() => goToSlide(index)}
+                    aria-label={`Go to slide ${index + 1}`}
+                    aria-current={index === current ? "true" : undefined}
+                    className={[
+                      "rounded-full transition-all duration-300",
+                      index === current
+                        ? "h-2 w-8 bg-white"
+                        : "h-2 w-2 bg-white/40 hover:bg-white/65",
+                    ].join(" ")}
+                  />
+                ))}
+              </div>
+            )}
           </div>
         </div>
       </div>

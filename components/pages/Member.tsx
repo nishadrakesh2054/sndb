@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { getAllProfiles } from "@/data/staticApi";
+import { getAllMembers, type Member } from "@/utils/supabase/members";
 import { getMediaUrl } from "@/lib/mediaUrl";
 import {
   PageContainer,
@@ -9,17 +9,10 @@ import {
   PageSection,
 } from "@/components/PageHeader";
 
-interface MemberProfile {
-  _id?: string;
-  title: string;
-  position: string;
-  image: string;
-}
-
 const formatName = (name: string) =>
   name.replace(/^dr\.?\s*/i, "Dr. ").replace(/\s+/g, " ").trim();
 
-const MemberCard: React.FC<{ member: MemberProfile; index: number }> = ({
+const MemberCard: React.FC<{ member: Member; index: number }> = ({
   member,
   index,
 }) => {
@@ -129,12 +122,40 @@ const CardSkeleton = () => (
 );
 
 const Member: React.FC = () => {
-  const [profiles, setProfiles] = useState<MemberProfile[]>([]);
+  const [profiles, setProfiles] = useState<Member[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    setProfiles(getAllProfiles() as MemberProfile[]);
-    setLoading(false);
+    let cancelled = false;
+
+    const loadMembers = async () => {
+      setLoading(true);
+      setError(null);
+
+      try {
+        const data = await getAllMembers();
+        if (!cancelled) {
+          setProfiles(data);
+        }
+      } catch (err) {
+        if (!cancelled) {
+          setError(
+            err instanceof Error ? err.message : "Failed to load members."
+          );
+        }
+      } finally {
+        if (!cancelled) {
+          setLoading(false);
+        }
+      }
+    };
+
+    loadMembers();
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   return (
@@ -162,19 +183,23 @@ const Member: React.FC = () => {
             </div>
           )}
 
-          {!loading && profiles.length === 0 && (
+          {!loading && error && (
+            <p className="text-center text-sm text-red-600">{error}</p>
+          )}
+
+          {!loading && !error && profiles.length === 0 && (
             <p className="text-center text-sm text-gray-600">
               No members listed yet.
             </p>
           )}
 
-          {!loading && profiles.length > 0 && (
+          {!loading && !error && profiles.length > 0 && (
             <div className="relative">
               <GridDecorations />
               <div className="relative grid grid-cols-2 gap-5 sm:gap-7 md:grid-cols-4 md:gap-8">
                 {profiles.map((member, index) => (
                   <MemberCard
-                    key={member._id ?? member.title}
+                    key={member.id}
                     member={member}
                     index={index}
                   />

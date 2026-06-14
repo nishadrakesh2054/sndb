@@ -1,4 +1,6 @@
-import type { ReactNode } from "react";
+"use client";
+
+import { useEffect, useState, type ReactNode } from "react";
 import Link from "next/link";
 import { FaArrowRight } from "react-icons/fa";
 import {
@@ -7,14 +9,18 @@ import {
   PageSection,
   PageSubsection,
 } from "@/components/PageHeader";
-
-type CommitteeEntry = {
-  title?: string;
-  name: string;
-};
+import {
+  getCategoryDescription,
+  getPastCommittee,
+  type CommitteeCategory,
+  type CommitteeMember,
+} from "@/utils/supabase/executiveCommittee";
 
 const formatName = (name: string) =>
   name.replace(/^dr\.?\s*/i, "Dr. ").replace(/\s+/g, " ").trim();
+
+const displayRoleTitle = (title: string) =>
+  title === "Member" ? "Member" : title;
 
 const SectionBlock = ({
   label,
@@ -32,15 +38,11 @@ const SectionBlock = ({
   </PageSubsection>
 );
 
-const PersonTile = ({ title, name }: CommitteeEntry) => (
+const PersonTile = ({ roleTitle, name }: { roleTitle: string; name: string }) => (
   <article className="flex min-h-[7.5rem] flex-col overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm transition hover:border-green-200 hover:shadow-md">
-    <div
-      className={`px-4 py-3 ${
-        title ? "bg-emerald-50/60" : "border-b border-emerald-50/80 bg-white"
-      }`}
-    >
+    <div className="bg-emerald-50/60 px-4 py-3">
       <p className="text-xs font-medium uppercase tracking-wide text-green-700">
-        {title ?? "Member"}
+        {displayRoleTitle(roleTitle)}
       </p>
     </div>
     <div className="flex flex-1 items-center justify-center px-4 py-4 text-center">
@@ -51,43 +53,79 @@ const PersonTile = ({ title, name }: CommitteeEntry) => (
   </article>
 );
 
+const tileGrid =
+  "grid grid-cols-1 gap-5 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 md:gap-6";
+
+const SectionSkeleton = () => (
+  <div className="space-y-6">
+    <div className="h-6 w-48 animate-pulse rounded bg-gray-200" />
+    <div className={tileGrid}>
+      {[...Array(4)].map((_, index) => (
+        <div
+          key={index}
+          className="h-32 animate-pulse rounded-2xl border border-gray-200 bg-white"
+        />
+      ))}
+    </div>
+  </div>
+);
+
 const PastEXComm: React.FC = () => {
-  const officeBearers: CommitteeEntry[] = [
-    { title: "President", name: "Dr. Dinesh Prasad Koirala" },
-    { title: "General Secretary", name: "Dr Mukesh Prashad Shah" },
-    { title: "Joint Secretary", name: "Dr. Santosh  Raj Manandhar" },
-    { title: "Treasurer", name: "Dr. Pinky Shah" },
-    { title: "Joint Treasurer", name: "Dr. Mithlesh Yadav" },
-  ];
+  const [categories, setCategories] = useState<CommitteeCategory[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const vicePresidents = [
-    "Dr. Bishwo Pokhrel",
-    "Dr. Lalit Kumar Das",
-    "Dr. Rita Kumari mahaseth",
-  ];
+  useEffect(() => {
+    let cancelled = false;
 
-  const members = [
-    "Dr. bashanta Baral",
-    "Dr. Siba Thakali",
-    "Dr. Mukesh Shah",
-    "Dr. Archana Shrestha Yadav",
-    "Dr. Niranjan Shah",
-    "Dr. Nehal Asharaf",
-    "Dr. Ritesh Ghimire",
-    "Dr. Amrita Shrestha",
-    "Dr. Upasana Sharma",
-  ];
+    const loadCommittee = async () => {
+      setLoading(true);
+      setError(null);
 
-  const additionalPositions: CommitteeEntry[] = [
-    {
-      title: "Founder & Ext. Affairs Coordinator",
-      name: "Dr. Rakesh  Shah",
-    },
-    { title: "Editor-in-Chief", name: "Dr. Amresh Karn " },
-  ];
+      try {
+        const data = await getPastCommittee();
+        if (!cancelled) {
+          setCategories(data);
+        }
+      } catch (err) {
+        if (!cancelled) {
+          setError(
+            err instanceof Error
+              ? err.message
+              : "Failed to load past executive committee."
+          );
+        }
+      } finally {
+        if (!cancelled) {
+          setLoading(false);
+        }
+      }
+    };
 
-  const tileGrid =
-    "grid grid-cols-1 gap-5 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 md:gap-6";
+    loadCommittee();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const renderMembers = (members: CommitteeMember[], compact = false) => {
+    const gridClass = compact
+      ? "grid grid-cols-1 gap-5 sm:grid-cols-2 md:gap-6 lg:mx-auto lg:max-w-3xl"
+      : tileGrid;
+
+    return (
+      <div className={gridClass}>
+        {members.map((member) => (
+          <PersonTile
+            key={member.id}
+            roleTitle={member.role_title}
+            name={member.name}
+          />
+        ))}
+      </div>
+    );
+  };
 
   return (
     <>
@@ -103,61 +141,41 @@ const PastEXComm: React.FC = () => {
             subtitle="SNDB executive committee for the 2021–2022 term."
           />
 
-          <div className="space-y-2">
-            <SectionBlock label="Leadership" heading="Office Bearers">
-              <div className={tileGrid}>
-                {officeBearers.map((person) => (
-                  <PersonTile
-                    key={person.title}
-                    title={person.title}
-                    name={person.name}
-                  />
-                ))}
-              </div>
-            </SectionBlock>
+          {loading && (
+            <div className="space-y-12">
+              {[...Array(4)].map((_, index) => (
+                <SectionSkeleton key={index} />
+              ))}
+            </div>
+          )}
 
-            <SectionBlock
-              label="Provincial"
-              heading="Vice-Presidents & Coordinators"
-            >
-              <div className={tileGrid}>
-                {vicePresidents.map((name) => (
-                  <PersonTile
-                    key={name}
-                    title="Vice-President"
-                    name={name}
-                  />
-                ))}
-              </div>
-            </SectionBlock>
+          {!loading && error && (
+            <p className="text-center text-sm text-red-600">{error}</p>
+          )}
 
-            <SectionBlock
-              label="Committee"
-              heading="Members"
-              description={`${members.length} executive committee members`}
-            >
-              <div className={tileGrid}>
-                {members.map((name) => (
-                  <PersonTile key={name} name={name} />
-                ))}
-              </div>
-            </SectionBlock>
+          {!loading && !error && categories.length === 0 && (
+            <p className="text-center text-sm text-gray-600">
+              No past committee data available yet.
+            </p>
+          )}
 
-            <SectionBlock
-              label="Special Roles"
-              heading="Additional Executive Positions"
-            >
-              <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 md:gap-6 lg:mx-auto lg:max-w-3xl">
-                {additionalPositions.map((person) => (
-                  <PersonTile
-                    key={person.title}
-                    title={person.title}
-                    name={person.name}
-                  />
-                ))}
-              </div>
-            </SectionBlock>
-          </div>
+          {!loading && !error && categories.length > 0 && (
+            <div className="space-y-2">
+              {categories.map((category) => (
+                <SectionBlock
+                  key={category.id}
+                  label={category.label}
+                  heading={category.heading}
+                  description={getCategoryDescription(category)}
+                >
+                  {renderMembers(
+                    category.members,
+                    category.slug === "past-special-roles"
+                  )}
+                </SectionBlock>
+              ))}
+            </div>
+          )}
 
           <div className="mt-14 border-t border-gray-200 pt-10 text-center">
             <Link

@@ -1,11 +1,15 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Lightbox from "yet-another-react-lightbox";
 import "yet-another-react-lightbox/styles.css";
 import Download from "yet-another-react-lightbox/plugins/download";
 import { FaChevronLeft, FaChevronRight, FaSearchPlus } from "react-icons/fa";
-import { getAllGalleries } from "@/data/staticApi";
+import {
+  getGalleryImageAlt,
+  getPublishedGalleryImages,
+  type GalleryImage,
+} from "@/utils/supabase/gallery";
 import { getMediaUrl } from "@/lib/mediaUrl";
 import {
   PageContainer,
@@ -13,35 +17,62 @@ import {
   PageSection,
 } from "@/components/PageHeader";
 
-interface GalleryImage {
-  _id: string;
-  images: string[];
-}
-
-interface GalleryItem {
-  id: string;
-  src: string;
-}
-
 const IMAGES_PER_PAGE = 6;
 
-const Gallery: React.FC = () => {
+type DisplayImage = {
+  id: string;
+  src: string;
+  alt: string;
+};
+
+const Gallery = () => {
+  const [images, setImages] = useState<GalleryImage[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [isOpen, setIsOpen] = useState(false);
-  const [galleries, setGalleries] = useState<GalleryImage[]>([]);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [currentPage, setCurrentPage] = useState(0);
-  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    setGalleries(getAllGalleries());
-    setLoading(false);
+    let cancelled = false;
+
+    const loadGallery = async () => {
+      setLoading(true);
+      setError(null);
+
+      try {
+        const data = await getPublishedGalleryImages();
+        if (!cancelled) {
+          setImages(data);
+        }
+      } catch (err) {
+        if (!cancelled) {
+          setError(
+            err instanceof Error ? err.message : "Failed to load gallery photos."
+          );
+        }
+      } finally {
+        if (!cancelled) {
+          setLoading(false);
+        }
+      }
+    };
+
+    loadGallery();
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
-  const allImages: GalleryItem[] = galleries.flatMap((gallery) =>
-    gallery.images.map((image) => ({
-      id: `${gallery._id}-${image}`,
-      src: getMediaUrl(image),
-    }))
+  const allImages: DisplayImage[] = useMemo(
+    () =>
+      images.map((image, index) => ({
+        id: image.id,
+        src: getMediaUrl(image.image_url),
+        alt: getGalleryImageAlt(image, index),
+      })),
+    [images]
   );
 
   const pageCount = Math.ceil(allImages.length / IMAGES_PER_PAGE);
@@ -83,7 +114,13 @@ const Gallery: React.FC = () => {
             </div>
           )}
 
-          {!loading && allImages.length === 0 && (
+          {!loading && error && (
+            <div className="mx-auto max-w-md rounded-lg border border-red-200 bg-white px-6 py-8 text-center">
+              <p className="font-medium text-red-600">{error}</p>
+            </div>
+          )}
+
+          {!loading && !error && allImages.length === 0 && (
             <div className="mx-auto max-w-md rounded-lg border border-gray-200 bg-white px-6 py-12 text-center shadow-sm">
               <p className="text-lg font-semibold text-gray-800">
                 No photos yet
@@ -94,7 +131,7 @@ const Gallery: React.FC = () => {
             </div>
           )}
 
-          {!loading && allImages.length > 0 && (
+          {!loading && !error && allImages.length > 0 && (
             <>
               <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
                 {displayedImages.map((item, index) => (
@@ -103,11 +140,11 @@ const Gallery: React.FC = () => {
                     type="button"
                     onClick={() => openLightbox(startIndex + index)}
                     className="group relative aspect-[4/3] overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm transition hover:shadow-md"
-                    aria-label={`View photo ${startIndex + index + 1}`}
+                    aria-label={`View ${item.alt}`}
                   >
                     <img
                       src={item.src}
-                      alt={`Gallery photo ${startIndex + index + 1}`}
+                      alt={item.alt}
                       loading="lazy"
                       className="h-full w-full object-cover transition duration-300 group-hover:scale-105"
                     />
@@ -132,49 +169,51 @@ const Gallery: React.FC = () => {
                     className="flex flex-wrap items-center justify-center gap-2"
                     aria-label="Gallery pagination"
                   >
-                  <button
-                    type="button"
-                    onClick={() =>
-                      setCurrentPage((page) => Math.max(0, page - 1))
-                    }
-                    disabled={currentPage === 0}
-                    className="inline-flex items-center gap-2 rounded-full border border-green-600 px-4 py-2 text-sm font-medium text-green-700 transition hover:bg-green-600 hover:text-white disabled:cursor-not-allowed disabled:border-gray-300 disabled:text-gray-400 disabled:hover:bg-transparent"
-                  >
-                    <FaChevronLeft className="h-3.5 w-3.5" />
-                    Previous
-                  </button>
-
-                  {Array.from({ length: pageCount }).map((_, index) => (
                     <button
-                      key={index}
                       type="button"
-                      onClick={() => setCurrentPage(index)}
-                      aria-current={currentPage === index ? "page" : undefined}
-                      className={[
-                        "flex h-10 w-10 items-center justify-center rounded-lg text-sm font-medium transition",
-                        currentPage === index
-                          ? "bg-green-600 text-white shadow-sm"
-                          : "border border-gray-200 bg-white text-gray-600 hover:border-green-600 hover:text-green-700",
-                      ].join(" ")}
+                      onClick={() =>
+                        setCurrentPage((page) => Math.max(0, page - 1))
+                      }
+                      disabled={currentPage === 0}
+                      className="inline-flex items-center gap-2 rounded-full border border-green-600 px-4 py-2 text-sm font-medium text-green-700 transition hover:bg-green-600 hover:text-white disabled:cursor-not-allowed disabled:border-gray-300 disabled:text-gray-400 disabled:hover:bg-transparent"
                     >
-                      {index + 1}
+                      <FaChevronLeft className="h-3.5 w-3.5" />
+                      Previous
                     </button>
-                  ))}
 
-                  <button
-                    type="button"
-                    onClick={() =>
-                      setCurrentPage((page) =>
-                        Math.min(pageCount - 1, page + 1)
-                      )
-                    }
-                    disabled={currentPage >= pageCount - 1}
-                    className="inline-flex items-center gap-2 rounded-full border border-green-600 px-4 py-2 text-sm font-medium text-green-700 transition hover:bg-green-600 hover:text-white disabled:cursor-not-allowed disabled:border-gray-300 disabled:text-gray-400 disabled:hover:bg-transparent"
-                  >
-                    Next
-                    <FaChevronRight className="h-3.5 w-3.5" />
-                  </button>
-                </nav>
+                    {Array.from({ length: pageCount }).map((_, index) => (
+                      <button
+                        key={index}
+                        type="button"
+                        onClick={() => setCurrentPage(index)}
+                        aria-current={
+                          currentPage === index ? "page" : undefined
+                        }
+                        className={[
+                          "flex h-10 w-10 items-center justify-center rounded-lg text-sm font-medium transition",
+                          currentPage === index
+                            ? "bg-green-600 text-white shadow-sm"
+                            : "border border-gray-200 bg-white text-gray-600 hover:border-green-600 hover:text-green-700",
+                        ].join(" ")}
+                      >
+                        {index + 1}
+                      </button>
+                    ))}
+
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setCurrentPage((page) =>
+                          Math.min(pageCount - 1, page + 1)
+                        )
+                      }
+                      disabled={currentPage >= pageCount - 1}
+                      className="inline-flex items-center gap-2 rounded-full border border-green-600 px-4 py-2 text-sm font-medium text-green-700 transition hover:bg-green-600 hover:text-white disabled:cursor-not-allowed disabled:border-gray-300 disabled:text-gray-400 disabled:hover:bg-transparent"
+                    >
+                      Next
+                      <FaChevronRight className="h-3.5 w-3.5" />
+                    </button>
+                  </nav>
                 )}
               </div>
             </>

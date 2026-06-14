@@ -1,11 +1,30 @@
 import type { Metadata } from "next";
 import PastEXCommPage from "@/components/pages/PastEXComm";
+import JsonLd from "@/components/seo/JsonLd";
+import { buildBreadcrumbJsonLd, createPageMetadata } from "@/lib/seo";
 
-export const metadata: Metadata = {
-  title: "Past Executive Committee | Society of Nepal Doctors of Bangladesh",
-  description: "Past SNDB executive committee members.",
-};
+export const metadata: Metadata = createPageMetadata({
+  title: "Past Executive Committee",
+  description:
+    "View the past SNDB executive committee members from the 2021–2022 term, including office bearers and committee members.",
+  path: "/past-committee",
+  keywords: [
+    "past SNDB committee",
+    "former executive committee",
+    "Nepalese doctors history",
+  ],
+});
 
 export default function Page() {
-  return <PastEXCommPage />;
+  return (
+    <>
+      <JsonLd
+        data={buildBreadcrumbJsonLd([
+          { name: "Home", path: "/" },
+          { name: "Past Executive Committee", path: "/past-committee" },
+        ])}
+      />
+      <PastEXCommPage />
+    </>
+  );
 }

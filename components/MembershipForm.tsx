@@ -1,8 +1,8 @@
 "use client";
 
-import axios from "axios";
 import { useState } from "react";
 import { FaArrowRight, FaUpload } from "react-icons/fa";
+import { submitMembershipApplication } from "@/utils/supabase/membership";
 
 const inputClass =
   "w-full rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-800 placeholder:text-gray-400 transition focus:border-green-600 focus:bg-white focus:outline-none focus:ring-2 focus:ring-green-600/20";
@@ -61,22 +61,17 @@ const MembershipForm: React.FC = () => {
       return;
     }
 
-    const formData = new FormData();
-    formData.append("name", name);
-    formData.append("email", email);
-    formData.append("phone", phone);
-    formData.append("position", position);
-    formData.append("image", profileImage);
-    formData.append("voucherImage", voucherImage);
-
     setIsSubmitting(true);
 
     try {
-      await axios.post(
-        `${process.env.NEXT_PUBLIC_SERVERAPI}/api/v1/createmember`,
-        formData,
-        { headers: { "Content-Type": "multipart/form-data" } }
-      );
+      await submitMembershipApplication({
+        name,
+        email,
+        phone,
+        position,
+        profileImage,
+        voucherImage,
+      });
 
       setStatus({
         success: "Your membership application has been submitted successfully.",
@@ -90,15 +85,14 @@ const MembershipForm: React.FC = () => {
       setVoucherImage(null);
       setProfileImagePreview(null);
       setVoucherImagePreview(null);
-    } catch (error) {
-      if (axios.isAxiosError(error)) {
-        console.error("Error response:", error.response?.data);
-      } else {
-        console.error("Unexpected error:", error);
-      }
+    } catch (error: unknown) {
+      const message =
+        error instanceof Error
+          ? error.message
+          : "There was an error submitting the form. Please try again.";
       setStatus({
         success: null,
-        error: "There was an error submitting the form. Please try again.",
+        error: message,
       });
     } finally {
       setIsSubmitting(false);

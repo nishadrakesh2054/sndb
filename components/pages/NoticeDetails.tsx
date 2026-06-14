@@ -3,25 +3,91 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { FaArrowLeft } from "react-icons/fa";
-import { getNoticeById, type NoticeItem } from "@/data/staticApi";
+import {
+  getNoticeBySlug,
+  getNoticeDisplayDate,
+  getNoticeImageAlt,
+  type Notice,
+} from "@/utils/supabase/notices";
 import { getMediaUrl } from "@/lib/mediaUrl";
 import { PageContainer, PageHeader, PageSection } from "@/components/PageHeader";
 import Loader from "./Loader";
 
-const NoticeDetails = ({ noticeId }: { noticeId: string }) => {
-  const [notice, setNotice] = useState<NoticeItem | null>(null);
-  const [loading, setLoading] = useState(true);
+const formatDate = (timestamp: string): string =>
+  new Date(timestamp).toLocaleDateString("en-US", {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  });
+
+const NoticeDetails = ({
+  slug,
+  initialNotice = null,
+}: {
+  slug: string;
+  initialNotice?: Notice | null;
+}) => {
+  const [notice, setNotice] = useState<Notice | null>(initialNotice);
+  const [loading, setLoading] = useState(!initialNotice);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    setNotice(getNoticeById(noticeId) ?? null);
-    setLoading(false);
-  }, [noticeId]);
+    if (initialNotice) {
+      return;
+    }
+
+    let cancelled = false;
+
+    const loadNotice = async () => {
+      setLoading(true);
+      setError(null);
+
+      try {
+        const data = await getNoticeBySlug(slug);
+        if (!cancelled) {
+          setNotice(data);
+        }
+      } catch (err) {
+        if (!cancelled) {
+          setError(
+            err instanceof Error ? err.message : "Failed to load notice."
+          );
+        }
+      } finally {
+        if (!cancelled) {
+          setLoading(false);
+        }
+      }
+    };
+
+    loadNotice();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [slug, initialNotice]);
 
   if (loading) {
     return (
       <PageSection>
         <PageContainer className="text-center">
           <Loader />
+        </PageContainer>
+      </PageSection>
+    );
+  }
+
+  if (error) {
+    return (
+      <PageSection>
+        <PageContainer className="max-w-4xl text-center">
+          <p className="text-lg font-semibold text-red-600">{error}</p>
+          <Link
+            href="/notice"
+            className="mt-4 inline-block text-sm font-semibold text-green-700 hover:text-green-800"
+          >
+            Back to Notices
+          </Link>
         </PageContainer>
       </PageSection>
     );
@@ -58,22 +124,28 @@ const NoticeDetails = ({ noticeId }: { noticeId: string }) => {
           <PageHeader
             label="Notice"
             title={notice.title}
-            subtitle={new Date(notice.createdAt).toLocaleDateString("en-US", {
-              year: "numeric",
-              month: "long",
-              day: "numeric",
-            })}
+            subtitle={formatDate(getNoticeDisplayDate(notice))}
             align="left"
           />
 
+          {notice.excerpt && (
+            <p className="mb-6 text-gray-600">{notice.excerpt}</p>
+          )}
+
           <div className="overflow-hidden rounded-xl border border-gray-200 bg-white p-4 shadow-sm sm:p-6">
             <img
-              src={getMediaUrl(notice.images)}
+              src={getMediaUrl(notice.image_url)}
               loading="lazy"
-              alt={notice.title}
+              alt={getNoticeImageAlt(notice)}
               className="mx-auto w-full max-w-3xl rounded-lg object-contain"
             />
           </div>
+
+          {notice.content && (
+            <div className="prose prose-gray mt-8 max-w-none">
+              <p className="whitespace-pre-line text-gray-700">{notice.content}</p>
+            </div>
+          )}
         </PageContainer>
       </PageSection>
     </>

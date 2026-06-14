@@ -2,26 +2,36 @@
 
 import { useEffect, useState } from "react";
 import { FaTimes } from "react-icons/fa";
-import { getAllNotices } from "@/data/staticApi";
+import { getActiveNoticePopup } from "@/utils/supabase/noticePopup";
 import { getMediaUrl } from "@/lib/mediaUrl";
-
-interface Notice {
-  images: string;
-}
 
 export default function NoticePopup() {
   const [showPopup, setShowPopup] = useState(false);
-  const [notice, setNotice] = useState<Notice[] | null>(null);
+  const [imageUrl, setImageUrl] = useState<string | null>(null);
 
   useEffect(() => {
-    const notices = getAllNotices();
-    if (notices.length > 0) {
-      setNotice(notices);
-      setShowPopup(true);
-    }
+    let cancelled = false;
+
+    const loadPopup = async () => {
+      try {
+        const data = await getActiveNoticePopup();
+        if (!cancelled && data) {
+          setImageUrl(data.image);
+          setShowPopup(true);
+        }
+      } catch {
+        // Popup is optional; fail silently.
+      }
+    };
+
+    loadPopup();
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
-  if (!showPopup || !notice || notice.length === 0) return null;
+  if (!showPopup || !imageUrl) return null;
 
   return (
     <div
@@ -44,14 +54,11 @@ export default function NoticePopup() {
           <FaTimes className="h-4 w-4" />
         </button>
 
-        {notice.slice(0, 1).map((item, index) => (
-          <img
-            key={index}
-            src={getMediaUrl(item.images)}
-            alt="Organization notice"
-            className="max-h-[85vh] w-full rounded-lg bg-white object-contain shadow-lg"
-          />
-        ))}
+        <img
+          src={getMediaUrl(imageUrl)}
+          alt="Organization notice"
+          className="max-h-[85vh] w-full rounded-lg bg-white object-contain shadow-lg"
+        />
       </div>
     </div>
   );

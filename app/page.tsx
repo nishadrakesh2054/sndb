@@ -1,30 +1,31 @@
 import type { Metadata } from "next";
+import dynamic from "next/dynamic";
 import Hero from "@/components/Hero";
-import About from "@/components/pages/About";
-import Blog from "@/components/pages/Blog";
-import Contact from "@/components/pages/Contact";
-import {
-  MissionVisionValues,
-  WhyJoinSNDB,
-} from "@/components/HomeSections";
+import { createHomeMetadata } from "@/lib/seo";
+import { getHeroSlidesServer } from "@/utils/supabase/heroes.server";
 
-export const metadata: Metadata = {
-  title: "SNDB | Society of Nepal Doctors of Bangladesh",
-  description:
-    "Welcome to the Society for Nepalese Doctors from Bangladesh (SNDB). Discover our mission, meet our members, read our blogs, and learn about our contributions to healthcare in Nepal.",
-  keywords: [
-    "Nepalese doctors",
-    "Bangladesh doctors",
-    "SNDB",
-    "healthcare in Nepal",
-    "medical professionals",
-  ],
-};
+const About = dynamic(() => import("@/components/pages/About"));
+const Blog = dynamic(() => import("@/components/pages/Blog"));
+const Contact = dynamic(() => import("@/components/pages/Contact"));
+const MissionVisionValues = dynamic(() =>
+  import("@/components/HomeSections").then((mod) => ({
+    default: mod.MissionVisionValues,
+  }))
+);
+const WhyJoinSNDB = dynamic(() =>
+  import("@/components/HomeSections").then((mod) => ({
+    default: mod.WhyJoinSNDB,
+  }))
+);
 
-export default function HomePage() {
+export const metadata: Metadata = createHomeMetadata();
+
+export default async function HomePage() {
+  const heroSlides = await getHeroSlidesServer(3).catch(() => []);
+
   return (
     <>
-      <Hero />
+      <Hero initialSlides={heroSlides} />
       <About />
       <MissionVisionValues />
       <WhyJoinSNDB />
