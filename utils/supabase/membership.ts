@@ -84,3 +84,19 @@ export async function submitMembershipApplication(
     throw error;
   }
 }
+
+export async function getMembershipFileSignedUrl(
+  path: string,
+  expiresIn = 3600
+): Promise<string> {
+  const supabase = createClient();
+  const { data, error } = await supabase.storage
+    .from(BUCKET)
+    .createSignedUrl(path, expiresIn);
+
+  if (error) {
+    throw error;
+  }
+
+  return data.signedUrl;
+}

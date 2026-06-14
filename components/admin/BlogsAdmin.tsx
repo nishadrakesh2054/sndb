@@ -1,23 +1,28 @@
 "use client";
 
 import { FormEvent, useEffect, useState } from "react";
+import { FaPen, FaPlus, FaTrash } from "react-icons/fa";
+import ImageInput, { type ImageInputMode } from "@/components/admin/ImageInput";
 import {
   AdminAlert,
   AdminCard,
   AdminPageHeader,
-  AdminTable,
 } from "@/components/admin/AdminUi";
 import {
-  btnDangerClass,
+  btnIconClass,
+  btnIconDangerClass,
   btnPrimaryClass,
   btnSecondaryClass,
   inputClass,
   labelClass,
   slugify,
 } from "@/lib/admin/config";
+import { getMediaUrl } from "@/lib/mediaUrl";
+import { uploadSiteMedia } from "@/utils/supabase/mediaUpload";
 import { createClient } from "@/utils/supabase/client";
 
 type BlogCategory = { id: string; name: string; slug: string };
+
 type Blog = {
   id: string;
   title: string;
@@ -25,59 +30,90 @@ type Blog = {
   excerpt: string;
   content: string;
   featured_image: string;
-  featured_image_alt: string | null;
   category_id: string | null;
-  author_name: string;
-  author_title: string | null;
   status: "draft" | "published" | "archived";
   published_at: string | null;
-  reading_time_minutes: number | null;
-  tags: string[];
-  meta_title: string | null;
-  meta_description: string | null;
+  created_at: string;
 };
 
 const emptyBlogForm = {
   id: "",
   title: "",
-  slug: "",
   excerpt: "",
   content: "",
   featured_image: "",
-  featured_image_alt: "",
   category_id: "",
-  author_name: "",
-  author_title: "",
-  status: "draft" as Blog["status"],
-  published_at: "",
-  reading_time_minutes: "",
-  tags: "",
-  meta_title: "",
-  meta_description: "",
+  published: true,
 };
 
-const emptyCategoryForm = { name: "", slug: "" };
+const emptyCategoryForm = { name: "" };
+
+const formatDate = (value: string | null) => {
+  if (!value) return "—";
+  return new Date(value).toLocaleDateString("en-US", {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+  });
+};
+
+const statusClass = (status: Blog["status"]) => {
+  if (status === "published") return "bg-green-100 text-green-800";
+  if (status === "archived") return "bg-gray-100 text-gray-600";
+  return "bg-amber-100 text-amber-800";
+};
+
+function buildExcerpt(excerpt: string, content: string): string {
+  const trimmed = excerpt.trim();
+  if (trimmed.length >= 40) return trimmed;
+
+  const fromContent = content.replace(/\s+/g, " ").trim().slice(0, 200);
+  if (fromContent.length >= 40) return fromContent;
+
+  throw new Error("Content must be at least 40 characters long.");
+}
+
+function estimateReadingMinutes(content: string): number {
+  const words = content.trim().split(/\s+/).filter(Boolean).length;
+  return Math.max(1, Math.ceil(words / 200));
+}
 
 export default function BlogsAdmin() {
   const [blogs, setBlogs] = useState<Blog[]>([]);
   const [categories, setCategories] = useState<BlogCategory[]>([]);
   const [blogForm, setBlogForm] = useState(emptyBlogForm);
   const [categoryForm, setCategoryForm] = useState(emptyCategoryForm);
+  const [showBlogForm, setShowBlogForm] = useState(false);
+  const [showCategoryForm, setShowCategoryForm] = useState(false);
   const [editingBlog, setEditingBlog] = useState(false);
+  const [imageMode, setImageMode] = useState<ImageInputMode>("upload");
+  const [imageFile, setImageFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(true);
-  const [savingBlog, setSavingBlog] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [savingCategory, setSavingCategory] = useState(false);
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
+
+  const categoryMap = Object.fromEntries(categories.map((c) => [c.id, c]));
 
   const load = async () => {
     setLoading(true);
     const supabase = createClient();
-    const [{ data: blogData, error: blogError }, { data: categoryData, error: categoryError }] = await Promise.all([
-      supabase.from("blogs").select("*").order("created_at", { ascending: false }),
-      supabase.from("blog_categories").select("id,name,slug").order("name", { ascending: true }),
-    ]);
+    const [{ data: blogData, error: blogError }, { data: categoryData, error: categoryError }] =
+      await Promise.all([
+        supabase
+          .from("blogs")
+          .select(
+            "id, title, slug, excerpt, content, featured_image, category_id, status, published_at, created_at"
+          )
+          .order("created_at", { ascending: false }),
+        supabase.from("blog_categories").select("id,name,slug").order("name", { ascending: true }),
+      ]);
+
     if (blogError || categoryError) {
-      setMessage({ type: "error", text: blogError?.message ?? categoryError?.message ?? "Failed to load data." });
+      setMessage({
+        type: "error",
+        text: blogError?.message ?? categoryError?.message ?? "Failed to load blogs.",
+      });
     } else {
       setBlogs((blogData ?? []) as Blog[]);
       setCategories((categoryData ?? []) as BlogCategory[]);
@@ -92,230 +128,460 @@ export default function BlogsAdmin() {
   const resetBlogForm = () => {
     setBlogForm(emptyBlogForm);
     setEditingBlog(false);
+    setShowBlogForm(false);
+    setImageMode("upload");
+    setImageFile(null);
+  };
+
+  const openAddBlogForm = () => {
+    setBlogForm(emptyBlogForm);
+    setEditingBlog(false);
+    setImageMode("upload");
+    setImageFile(null);
+    setShowBlogForm(true);
+    setMessage(null);
+  };
+
+  const openEditBlogForm = (row: Blog) => {
+    setBlogForm({
+      id: row.id,
+      title: row.title,
+      excerpt: row.excerpt,
+      content: row.content,
+      featured_image: row.featured_image,
+      category_id: row.category_id ?? "",
+      published: row.status === "published",
+    });
+    setEditingBlog(true);
+    setImageMode("url");
+    setImageFile(null);
+    setShowBlogForm(true);
+    setMessage(null);
   };
 
   const handleBlogSubmit = async (event: FormEvent) => {
     event.preventDefault();
-    setSavingBlog(true);
+    setSaving(true);
     setMessage(null);
-    const supabase = createClient();
-    const payload = {
-      title: blogForm.title.trim(),
-      slug: blogForm.slug.trim() || slugify(blogForm.title),
-      excerpt: blogForm.excerpt.trim(),
-      content: blogForm.content.trim(),
-      featured_image: blogForm.featured_image.trim(),
-      featured_image_alt: blogForm.featured_image_alt.trim() || null,
-      category_id: blogForm.category_id || null,
-      author_name: blogForm.author_name.trim() || "SNDB Editorial Team",
-      author_title: blogForm.author_title.trim() || null,
-      status: blogForm.status,
-      published_at: blogForm.published_at ? new Date(blogForm.published_at).toISOString() : null,
-      reading_time_minutes: blogForm.reading_time_minutes ? Number(blogForm.reading_time_minutes) : null,
-      tags: blogForm.tags
-        .split(",")
-        .map((tag) => tag.trim())
-        .filter(Boolean),
-      meta_title: blogForm.meta_title.trim() || null,
-      meta_description: blogForm.meta_description.trim() || null,
-    };
-    const { error } = editingBlog
-      ? await supabase.from("blogs").update(payload).eq("id", blogForm.id)
-      : await supabase.from("blogs").insert(payload);
-    setSavingBlog(false);
-    if (error) {
-      setMessage({ type: "error", text: error.message });
-      return;
+
+    try {
+      let imagePath = blogForm.featured_image.trim();
+
+      if (imageMode === "upload") {
+        if (imageFile) {
+          imagePath = await uploadSiteMedia("blogs", imageFile);
+        } else if (!editingBlog || !imagePath) {
+          throw new Error("Please choose a featured image to upload.");
+        }
+      } else if (!imagePath) {
+        throw new Error("Please enter an image URL or path.");
+      }
+
+      const title = blogForm.title.trim();
+      const content = blogForm.content.trim();
+      const excerpt = buildExcerpt(blogForm.excerpt, content);
+      const existing = editingBlog ? blogs.find((b) => b.id === blogForm.id) : null;
+      const slug = existing?.slug ?? slugify(title);
+      const now = new Date().toISOString();
+
+      if (!slug) {
+        throw new Error("Title must contain letters or numbers.");
+      }
+
+      const publishedAt = blogForm.published ? existing?.published_at ?? now : null;
+      const readingMinutes = estimateReadingMinutes(content);
+
+      const payload = {
+        title,
+        slug,
+        excerpt,
+        content,
+        featured_image: imagePath,
+        featured_image_alt: title,
+        category_id: blogForm.category_id || null,
+        author_name: "SNDB Editorial Team",
+        author_title: null,
+        status: blogForm.published ? ("published" as const) : ("draft" as const),
+        published_at: publishedAt,
+        reading_time_minutes: readingMinutes,
+        tags: [] as string[],
+        meta_title: title,
+        meta_description: excerpt.slice(0, 160),
+        og_title: title,
+        og_description: excerpt.slice(0, 200),
+        og_image: imagePath,
+      };
+
+      const supabase = createClient();
+      const { error } = editingBlog
+        ? await supabase.from("blogs").update(payload).eq("id", blogForm.id)
+        : await supabase.from("blogs").insert(payload);
+
+      if (error) throw error;
+
+      setMessage({ type: "success", text: editingBlog ? "Blog updated." : "Blog added." });
+      resetBlogForm();
+      load();
+    } catch (err) {
+      setMessage({
+        type: "error",
+        text: err instanceof Error ? err.message : "Failed to save blog.",
+      });
+    } finally {
+      setSaving(false);
     }
-    setMessage({ type: "success", text: editingBlog ? "Blog updated." : "Blog created." });
-    resetBlogForm();
-    load();
   };
 
   const handleDeleteBlog = async (id: string) => {
     if (!confirm("Delete this blog?")) return;
+
     const supabase = createClient();
     const { error } = await supabase.from("blogs").delete().eq("id", id);
-    if (error) setMessage({ type: "error", text: error.message });
-    else {
-      setMessage({ type: "success", text: "Blog deleted." });
-      load();
+
+    if (error) {
+      setMessage({ type: "error", text: error.message });
+      return;
     }
+
+    setMessage({ type: "success", text: "Blog deleted." });
+    if (blogForm.id === id) resetBlogForm();
+    load();
   };
 
   const handleCategorySubmit = async (event: FormEvent) => {
     event.preventDefault();
     setSavingCategory(true);
-    const supabase = createClient();
-    const { error } = await supabase.from("blog_categories").insert({
-      name: categoryForm.name.trim(),
-      slug: categoryForm.slug.trim() || slugify(categoryForm.name),
-    });
-    setSavingCategory(false);
-    if (error) {
-      setMessage({ type: "error", text: error.message });
-      return;
+    setMessage(null);
+
+    try {
+      const name = categoryForm.name.trim();
+      const slug = slugify(name);
+
+      if (!slug) {
+        throw new Error("Category name must contain letters or numbers.");
+      }
+
+      const supabase = createClient();
+      const { error } = await supabase.from("blog_categories").insert({ name, slug });
+
+      if (error) throw error;
+
+      setCategoryForm(emptyCategoryForm);
+      setShowCategoryForm(false);
+      setMessage({ type: "success", text: "Category added." });
+      load();
+    } catch (err) {
+      setMessage({
+        type: "error",
+        text: err instanceof Error ? err.message : "Failed to add category.",
+      });
+    } finally {
+      setSavingCategory(false);
     }
-    setCategoryForm(emptyCategoryForm);
-    setMessage({ type: "success", text: "Category added." });
-    load();
   };
 
   const handleCategoryDelete = async (id: string) => {
     if (!confirm("Delete this category?")) return;
+
     const supabase = createClient();
     const { error } = await supabase.from("blog_categories").delete().eq("id", id);
-    if (error) setMessage({ type: "error", text: error.message });
-    else {
-      setMessage({ type: "success", text: "Category deleted." });
-      load();
+
+    if (error) {
+      setMessage({ type: "error", text: error.message });
+      return;
     }
+
+    setMessage({ type: "success", text: "Category deleted." });
+    load();
   };
 
   return (
     <div className="space-y-6">
-      <AdminPageHeader title="Blogs" description="Manage blog posts and blog categories." />
+      <AdminPageHeader
+        title="Blogs"
+        description="Manage blog articles shown on the blog page and homepage."
+        action={
+          !showBlogForm ? (
+            <button type="button" onClick={openAddBlogForm} className={btnPrimaryClass}>
+              <FaPlus className="mr-2 h-3.5 w-3.5" />
+              Add Blog
+            </button>
+          ) : null
+        }
+      />
+
       {message ? <AdminAlert type={message.type} message={message.text} /> : null}
 
-      <AdminCard title="Blog Post">
-        <form onSubmit={handleBlogSubmit} className="grid gap-4 md:grid-cols-2">
-          <div>
-            <label className={labelClass}>Title</label>
-            <input required value={blogForm.title} onChange={(e) => setBlogForm({ ...blogForm, title: e.target.value })} className={inputClass} />
-          </div>
-          <div>
-            <label className={labelClass}>Slug</label>
-            <input value={blogForm.slug} onChange={(e) => setBlogForm({ ...blogForm, slug: e.target.value })} className={inputClass} />
-          </div>
-          <div>
-            <label className={labelClass}>Featured image</label>
-            <input required value={blogForm.featured_image} onChange={(e) => setBlogForm({ ...blogForm, featured_image: e.target.value })} className={inputClass} />
-          </div>
-          <div>
-            <label className={labelClass}>Featured image alt</label>
-            <input value={blogForm.featured_image_alt} onChange={(e) => setBlogForm({ ...blogForm, featured_image_alt: e.target.value })} className={inputClass} />
-          </div>
-          <div className="md:col-span-2">
-            <label className={labelClass}>Excerpt</label>
-            <textarea required value={blogForm.excerpt} onChange={(e) => setBlogForm({ ...blogForm, excerpt: e.target.value })} className={inputClass} rows={2} />
-          </div>
-          <div className="md:col-span-2">
-            <label className={labelClass}>Content</label>
-            <textarea required value={blogForm.content} onChange={(e) => setBlogForm({ ...blogForm, content: e.target.value })} className={inputClass} rows={5} />
-          </div>
-          <div>
-            <label className={labelClass}>Category</label>
-            <select value={blogForm.category_id} onChange={(e) => setBlogForm({ ...blogForm, category_id: e.target.value })} className={inputClass}>
-              <option value="">Uncategorized</option>
-              {categories.map((c) => (
-                <option key={c.id} value={c.id}>{c.name}</option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label className={labelClass}>Status</label>
-            <select value={blogForm.status} onChange={(e) => setBlogForm({ ...blogForm, status: e.target.value as Blog["status"] })} className={inputClass}>
-              <option value="draft">Draft</option>
-              <option value="published">Published</option>
-              <option value="archived">Archived</option>
-            </select>
-          </div>
-          <div>
-            <label className={labelClass}>Author name</label>
-            <input value={blogForm.author_name} onChange={(e) => setBlogForm({ ...blogForm, author_name: e.target.value })} className={inputClass} />
-          </div>
-          <div>
-            <label className={labelClass}>Author title</label>
-            <input value={blogForm.author_title} onChange={(e) => setBlogForm({ ...blogForm, author_title: e.target.value })} className={inputClass} />
-          </div>
-          <div>
-            <label className={labelClass}>Published at</label>
-            <input type="datetime-local" value={blogForm.published_at} onChange={(e) => setBlogForm({ ...blogForm, published_at: e.target.value })} className={inputClass} />
-          </div>
-          <div>
-            <label className={labelClass}>Reading time (minutes)</label>
-            <input type="number" min={1} value={blogForm.reading_time_minutes} onChange={(e) => setBlogForm({ ...blogForm, reading_time_minutes: e.target.value })} className={inputClass} />
-          </div>
-          <div className="md:col-span-2">
-            <label className={labelClass}>Tags (comma separated)</label>
-            <input value={blogForm.tags} onChange={(e) => setBlogForm({ ...blogForm, tags: e.target.value })} className={inputClass} />
-          </div>
-          <div>
-            <label className={labelClass}>Meta title</label>
-            <input value={blogForm.meta_title} onChange={(e) => setBlogForm({ ...blogForm, meta_title: e.target.value })} className={inputClass} />
-          </div>
-          <div>
-            <label className={labelClass}>Meta description</label>
-            <textarea value={blogForm.meta_description} onChange={(e) => setBlogForm({ ...blogForm, meta_description: e.target.value })} className={inputClass} rows={2} />
-          </div>
-          <div className="md:col-span-2 flex gap-2">
-            <button type="submit" disabled={savingBlog} className={btnPrimaryClass}>{savingBlog ? "Saving..." : editingBlog ? "Update" : "Create"}</button>
-            {editingBlog ? <button type="button" className={btnSecondaryClass} onClick={resetBlogForm}>Cancel</button> : null}
-          </div>
-        </form>
-      </AdminCard>
+      {showBlogForm ? (
+        <AdminCard title={editingBlog ? "Edit Blog" : "Add Blog"}>
+          <form onSubmit={handleBlogSubmit} className="space-y-4">
+            <div>
+              <label className={labelClass}>Title</label>
+              <input
+                required
+                value={blogForm.title}
+                onChange={(event) => setBlogForm({ ...blogForm, title: event.target.value })}
+                className={inputClass}
+              />
+            </div>
 
-      <AdminCard title="All Blogs">
-        {loading ? <p className="text-sm text-gray-500">Loading...</p> : blogs.length === 0 ? <p className="text-sm text-gray-500">No blogs yet.</p> : (
-          <AdminTable headers={["Title", "Status", "Category", "Actions"]}>
-            {blogs.map((row) => (
-              <tr key={row.id}>
-                <td className="px-3 py-3">
-                  <p className="font-medium text-gray-900">{row.title}</p>
-                  <p className="text-xs text-gray-500">{row.slug}</p>
-                </td>
-                <td className="px-3 py-3">{row.status}</td>
-                <td className="px-3 py-3">{categories.find((c) => c.id === row.category_id)?.name ?? "-"}</td>
-                <td className="px-3 py-3">
-                  <div className="flex gap-2">
-                    <button type="button" className={btnSecondaryClass} onClick={() => {
-                      setBlogForm({
-                        id: row.id,
-                        title: row.title,
-                        slug: row.slug,
-                        excerpt: row.excerpt,
-                        content: row.content,
-                        featured_image: row.featured_image,
-                        featured_image_alt: row.featured_image_alt ?? "",
-                        category_id: row.category_id ?? "",
-                        author_name: row.author_name,
-                        author_title: row.author_title ?? "",
-                        status: row.status,
-                        published_at: row.published_at ? row.published_at.slice(0, 16) : "",
-                        reading_time_minutes: row.reading_time_minutes ? String(row.reading_time_minutes) : "",
-                        tags: (row.tags ?? []).join(", "),
-                        meta_title: row.meta_title ?? "",
-                        meta_description: row.meta_description ?? "",
-                      });
-                      setEditingBlog(true);
-                    }}>Edit</button>
-                    <button type="button" className={btnDangerClass} onClick={() => handleDeleteBlog(row.id)}>Delete</button>
-                  </div>
-                </td>
-              </tr>
-            ))}
-          </AdminTable>
+            <div>
+              <label className={labelClass}>Short summary</label>
+              <textarea
+                value={blogForm.excerpt}
+                onChange={(event) => setBlogForm({ ...blogForm, excerpt: event.target.value })}
+                rows={2}
+                placeholder="Optional — auto-filled from content if left empty"
+                className={inputClass}
+              />
+            </div>
+
+            <div>
+              <label className={labelClass}>Content</label>
+              <textarea
+                required
+                value={blogForm.content}
+                onChange={(event) => setBlogForm({ ...blogForm, content: event.target.value })}
+                rows={6}
+                className={inputClass}
+              />
+            </div>
+
+            <div>
+              <label className={labelClass}>Featured Image</label>
+              <ImageInput
+                mode={imageMode}
+                onModeChange={setImageMode}
+                urlValue={blogForm.featured_image}
+                onUrlChange={(value) => setBlogForm({ ...blogForm, featured_image: value })}
+                file={imageFile}
+                onFileChange={setImageFile}
+                existingPath={editingBlog ? blogForm.featured_image : ""}
+              />
+            </div>
+
+            <div>
+              <label className={labelClass}>Category</label>
+              <select
+                value={blogForm.category_id}
+                onChange={(event) =>
+                  setBlogForm({ ...blogForm, category_id: event.target.value })
+                }
+                className={inputClass}
+              >
+                <option value="">Uncategorized</option>
+                {categories.map((category) => (
+                  <option key={category.id} value={category.id}>
+                    {category.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <label className="flex items-center gap-2 text-sm text-gray-700">
+              <input
+                type="checkbox"
+                checked={blogForm.published}
+                onChange={(event) =>
+                  setBlogForm({ ...blogForm, published: event.target.checked })
+                }
+                className="h-4 w-4 rounded border-gray-300 text-green-600 focus:ring-green-600"
+              />
+              Publish on site
+            </label>
+
+            <div className="flex gap-2">
+              <button type="submit" disabled={saving} className={btnPrimaryClass}>
+                {saving ? "Saving..." : editingBlog ? "Update Blog" : "Add Blog"}
+              </button>
+              <button type="button" onClick={resetBlogForm} className={btnSecondaryClass}>
+                Cancel
+              </button>
+            </div>
+          </form>
+        </AdminCard>
+      ) : null}
+
+      <AdminCard title={`All Blogs (${blogs.length})`}>
+        {loading ? (
+          <p className="text-sm text-gray-500">Loading...</p>
+        ) : blogs.length === 0 ? (
+          <div className="rounded-lg border border-dashed border-gray-300 px-6 py-10 text-center">
+            <p className="text-sm text-gray-500">No blogs yet.</p>
+            <button type="button" onClick={openAddBlogForm} className={`${btnPrimaryClass} mt-4`}>
+              <FaPlus className="mr-2 h-3.5 w-3.5" />
+              Add your first blog
+            </button>
+          </div>
+        ) : (
+          <div className="overflow-x-auto rounded-lg border border-gray-200">
+            <table className="min-w-full divide-y divide-gray-200 text-sm">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">
+                    Image
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">
+                    Title
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">
+                    Category
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">
+                    Status
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">
+                    Published
+                  </th>
+                  <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-gray-500">
+                    Actions
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100 bg-white">
+                {blogs.map((row) => (
+                  <tr key={row.id} className="transition hover:bg-gray-50/80">
+                    <td className="px-4 py-4 align-top">
+                      <div className="h-14 w-20 overflow-hidden rounded-lg border border-gray-200 bg-gray-50">
+                        <img
+                          src={getMediaUrl(row.featured_image)}
+                          alt={row.title}
+                          className="h-full w-full object-cover"
+                        />
+                      </div>
+                    </td>
+                    <td className="max-w-xs px-4 py-4 align-top">
+                      <p className="font-semibold text-gray-900">{row.title}</p>
+                      <p className="mt-1 line-clamp-2 text-xs text-gray-500">{row.excerpt}</p>
+                    </td>
+                    <td className="px-4 py-4 align-top text-gray-700">
+                      {row.category_id ? categoryMap[row.category_id]?.name ?? "—" : "—"}
+                    </td>
+                    <td className="px-4 py-4 align-top">
+                      <span
+                        className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold capitalize ${statusClass(row.status)}`}
+                      >
+                        {row.status}
+                      </span>
+                    </td>
+                    <td className="whitespace-nowrap px-4 py-4 align-top text-gray-500">
+                      {formatDate(row.published_at ?? row.created_at)}
+                    </td>
+                    <td className="px-4 py-4 align-top">
+                      <div className="flex justify-end gap-2">
+                        <button
+                          type="button"
+                          aria-label={`Edit ${row.title}`}
+                          title="Edit blog"
+                          className={btnIconClass}
+                          onClick={() => openEditBlogForm(row)}
+                        >
+                          <FaPen className="h-3.5 w-3.5" />
+                        </button>
+                        <button
+                          type="button"
+                          aria-label={`Delete ${row.title}`}
+                          title="Delete blog"
+                          className={btnIconDangerClass}
+                          onClick={() => handleDeleteBlog(row.id)}
+                        >
+                          <FaTrash className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         )}
       </AdminCard>
 
-      <AdminCard title="Blog Categories">
-        <form onSubmit={handleCategorySubmit} className="mb-4 grid gap-3 md:grid-cols-[1fr_1fr_auto]">
-          <input required value={categoryForm.name} onChange={(e) => setCategoryForm({ ...categoryForm, name: e.target.value })} className={inputClass} placeholder="Category name" />
-          <input value={categoryForm.slug} onChange={(e) => setCategoryForm({ ...categoryForm, slug: e.target.value })} className={inputClass} placeholder="Slug (optional)" />
-          <button type="submit" disabled={savingCategory} className={btnPrimaryClass}>{savingCategory ? "Adding..." : "Add Category"}</button>
-        </form>
-        {categories.length === 0 ? <p className="text-sm text-gray-500">No categories yet.</p> : (
-          <AdminTable headers={["Name", "Slug", "Actions"]}>
-            {categories.map((category) => (
-              <tr key={category.id}>
-                <td className="px-3 py-3 font-medium text-gray-900">{category.name}</td>
-                <td className="px-3 py-3 text-gray-600">{category.slug}</td>
-                <td className="px-3 py-3">
-                  <button type="button" className={btnDangerClass} onClick={() => handleCategoryDelete(category.id)}>Delete</button>
-                </td>
-              </tr>
-            ))}
-          </AdminTable>
+      <AdminCard title={`Categories (${categories.length})`}>
+        <div className="mb-4 flex justify-end">
+          {!showCategoryForm ? (
+            <button
+              type="button"
+              onClick={() => setShowCategoryForm(true)}
+              className={btnSecondaryClass}
+            >
+              <FaPlus className="mr-2 h-3.5 w-3.5" />
+              Add Category
+            </button>
+          ) : null}
+        </div>
+
+        {showCategoryForm ? (
+          <form
+            onSubmit={handleCategorySubmit}
+            className="mb-6 flex flex-col gap-3 rounded-lg border border-gray-200 bg-gray-50 p-4 sm:flex-row"
+          >
+            <input
+              required
+              value={categoryForm.name}
+              onChange={(event) => setCategoryForm({ name: event.target.value })}
+              placeholder="Category name"
+              className={inputClass}
+            />
+            <div className="flex gap-2">
+              <button type="submit" disabled={savingCategory} className={btnPrimaryClass}>
+                {savingCategory ? "Adding..." : "Add"}
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowCategoryForm(false);
+                  setCategoryForm(emptyCategoryForm);
+                }}
+                className={btnSecondaryClass}
+              >
+                Cancel
+              </button>
+            </div>
+          </form>
+        ) : null}
+
+        {loading ? (
+          <p className="text-sm text-gray-500">Loading...</p>
+        ) : categories.length === 0 ? (
+          <p className="text-sm text-gray-500">No categories yet.</p>
+        ) : (
+          <div className="overflow-x-auto rounded-lg border border-gray-200">
+            <table className="min-w-full divide-y divide-gray-200 text-sm">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">
+                    Name
+                  </th>
+                  <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-gray-500">
+                    Actions
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100 bg-white">
+                {categories.map((category) => (
+                  <tr key={category.id} className="transition hover:bg-gray-50/80">
+                    <td className="px-4 py-4 align-top font-semibold text-gray-900">
+                      {category.name}
+                    </td>
+                    <td className="px-4 py-4 align-top">
+                      <div className="flex justify-end">
+                        <button
+                          type="button"
+                          aria-label={`Delete ${category.name}`}
+                          title="Delete category"
+                          className={btnIconDangerClass}
+                          onClick={() => handleCategoryDelete(category.id)}
+                        >
+                          <FaTrash className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         )}
       </AdminCard>
     </div>

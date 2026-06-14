@@ -3,6 +3,7 @@ import Footer from "@/components/Footer";
 import Header from "@/components/Header";
 import LogoTop from "@/components/LogoTop";
 import NoticePopup from "@/components/NoticePopup";
+import SiteShell from "@/components/SiteShell";
 import JsonLd from "@/components/seo/JsonLd";
 import Topbar from "@/components/Topbar";
 import {
@@ -14,7 +15,7 @@ export default function SiteLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <>
+    <SiteShell>
       <JsonLd data={[buildOrganizationJsonLd(), buildWebsiteJsonLd()]} />
       <Topbar />
       <LogoTop />
@@ -22,6 +23,6 @@ export default function SiteLayout({
       <NoticePopup />
       <main>{children}</main>
       <Footer />
-    </>
+    </SiteShell>
   );
 }

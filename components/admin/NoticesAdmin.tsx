@@ -1,58 +1,67 @@
 "use client";
 
 import { FormEvent, useEffect, useState } from "react";
+import { FaPen, FaPlus, FaTrash } from "react-icons/fa";
+import ImageInput, { type ImageInputMode } from "@/components/admin/ImageInput";
 import {
   AdminAlert,
   AdminCard,
   AdminPageHeader,
-  AdminTable,
 } from "@/components/admin/AdminUi";
 import {
-  btnDangerClass,
+  btnIconClass,
+  btnIconDangerClass,
   btnPrimaryClass,
   btnSecondaryClass,
   inputClass,
   labelClass,
   slugify,
 } from "@/lib/admin/config";
+import { getMediaUrl } from "@/lib/mediaUrl";
+import { uploadSiteMedia } from "@/utils/supabase/mediaUpload";
 import { createClient } from "@/utils/supabase/client";
 
 type Notice = {
   id: string;
   title: string;
   slug: string;
-  excerpt: string | null;
   content: string | null;
   image_url: string;
-  image_alt: string | null;
-  show_in_popup: boolean;
   status: "draft" | "published" | "archived";
   published_at: string | null;
-  sort_order: number;
-  meta_title: string | null;
-  meta_description: string | null;
+  created_at: string;
 };
 
 const emptyForm = {
   id: "",
   title: "",
-  slug: "",
-  excerpt: "",
   content: "",
   image_url: "",
-  image_alt: "",
-  show_in_popup: false,
-  status: "draft" as Notice["status"],
-  published_at: "",
-  sort_order: "0",
-  meta_title: "",
-  meta_description: "",
+  published: true,
+};
+
+const formatDate = (value: string | null) => {
+  if (!value) return "—";
+  return new Date(value).toLocaleDateString("en-US", {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+  });
+};
+
+const statusClass = (status: Notice["status"]) => {
+  if (status === "published") return "bg-green-100 text-green-800";
+  if (status === "archived") return "bg-gray-100 text-gray-600";
+  return "bg-amber-100 text-amber-800";
 };
 
 export default function NoticesAdmin() {
   const [rows, setRows] = useState<Notice[]>([]);
   const [form, setForm] = useState(emptyForm);
   const [editing, setEditing] = useState(false);
+  const [showForm, setShowForm] = useState(false);
+  const [imageMode, setImageMode] = useState<ImageInputMode>("upload");
+  const [imageFile, setImageFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
@@ -60,9 +69,16 @@ export default function NoticesAdmin() {
   const load = async () => {
     setLoading(true);
     const supabase = createClient();
-    const { data, error } = await supabase.from("notices").select("*").order("created_at", { ascending: false });
-    if (error) setMessage({ type: "error", text: error.message });
-    else setRows((data ?? []) as Notice[]);
+    const { data, error } = await supabase
+      .from("notices")
+      .select("id, title, slug, content, image_url, status, published_at, created_at")
+      .order("created_at", { ascending: false });
+
+    if (error) {
+      setMessage({ type: "error", text: error.message });
+    } else {
+      setRows((data ?? []) as Notice[]);
+    }
     setLoading(false);
   };
 
@@ -73,166 +89,293 @@ export default function NoticesAdmin() {
   const resetForm = () => {
     setForm(emptyForm);
     setEditing(false);
+    setShowForm(false);
+    setImageMode("upload");
+    setImageFile(null);
+  };
+
+  const openAddForm = () => {
+    setForm(emptyForm);
+    setEditing(false);
+    setImageMode("upload");
+    setImageFile(null);
+    setShowForm(true);
+    setMessage(null);
+  };
+
+  const openEditForm = (row: Notice) => {
+    setForm({
+      id: row.id,
+      title: row.title,
+      content: row.content ?? "",
+      image_url: row.image_url,
+      published: row.status === "published",
+    });
+    setEditing(true);
+    setImageMode("url");
+    setImageFile(null);
+    setShowForm(true);
+    setMessage(null);
   };
 
   const handleSubmit = async (event: FormEvent) => {
     event.preventDefault();
     setSaving(true);
     setMessage(null);
-    const supabase = createClient();
 
-    const payload = {
-      title: form.title.trim(),
-      slug: (form.slug.trim() || slugify(form.title)).trim(),
-      excerpt: form.excerpt.trim() || null,
-      content: form.content.trim() || null,
-      image_url: form.image_url.trim(),
-      image_alt: form.image_alt.trim() || null,
-      show_in_popup: form.show_in_popup,
-      status: form.status,
-      published_at: form.published_at ? new Date(form.published_at).toISOString() : null,
-      sort_order: Number(form.sort_order || 0),
-      meta_title: form.meta_title.trim() || null,
-      meta_description: form.meta_description.trim() || null,
-    };
+    try {
+      let imagePath = form.image_url.trim();
 
-    const { error } = editing
-      ? await supabase.from("notices").update(payload).eq("id", form.id)
-      : await supabase.from("notices").insert(payload);
+      if (imageMode === "upload") {
+        if (imageFile) {
+          imagePath = await uploadSiteMedia("notices", imageFile);
+        } else if (!editing || !imagePath) {
+          throw new Error("Please choose an image to upload.");
+        }
+      } else if (!imagePath) {
+        throw new Error("Please enter an image URL or path.");
+      }
 
-    setSaving(false);
-    if (error) {
-      setMessage({ type: "error", text: error.message });
-      return;
+      const title = form.title.trim();
+      const content = form.content.trim();
+      const excerpt = content.slice(0, 200) || null;
+      const now = new Date().toISOString();
+      const existing = editing ? rows.find((row) => row.id === form.id) : null;
+      const slug = existing?.slug ?? slugify(title);
+
+      if (!slug) {
+        throw new Error("Title must contain letters or numbers.");
+      }
+
+      const publishedAt = form.published
+        ? existing?.published_at ?? now
+        : null;
+
+      const payload = {
+        title,
+        slug,
+        content: content || null,
+        excerpt,
+        image_url: imagePath,
+        image_alt: title,
+        show_in_popup: false,
+        status: form.published ? ("published" as const) : ("draft" as const),
+        published_at: publishedAt,
+        sort_order: 0,
+        meta_title: title,
+        meta_description: excerpt,
+      };
+
+      const supabase = createClient();
+      const { error } = editing
+        ? await supabase.from("notices").update(payload).eq("id", form.id)
+        : await supabase.from("notices").insert(payload);
+
+      if (error) {
+        throw error;
+      }
+
+      setMessage({ type: "success", text: editing ? "Notice updated." : "Notice added." });
+      resetForm();
+      load();
+    } catch (err) {
+      setMessage({
+        type: "error",
+        text: err instanceof Error ? err.message : "Failed to save notice.",
+      });
+    } finally {
+      setSaving(false);
     }
-    setMessage({ type: "success", text: editing ? "Notice updated." : "Notice created." });
-    resetForm();
-    load();
   };
 
   const handleDelete = async (id: string) => {
     if (!confirm("Delete this notice?")) return;
+
     const supabase = createClient();
     const { error } = await supabase.from("notices").delete().eq("id", id);
-    if (error) setMessage({ type: "error", text: error.message });
-    else {
-      setMessage({ type: "success", text: "Notice deleted." });
-      load();
+
+    if (error) {
+      setMessage({ type: "error", text: error.message });
+      return;
     }
+
+    setMessage({ type: "success", text: "Notice deleted." });
+    if (form.id === id) {
+      resetForm();
+    }
+    load();
   };
 
   return (
     <div>
-      <AdminPageHeader title="Notices" description="Create, publish, and organize notices." />
-      {message ? <AdminAlert type={message.type} message={message.text} /> : null}
-      <div className="grid gap-6 lg:grid-cols-2">
-        <AdminCard title={editing ? "Edit Notice" : "Add Notice"}>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <label className={labelClass}>Title</label>
-              <input required value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} className={inputClass} />
-            </div>
-            <div>
-              <label className={labelClass}>Slug</label>
-              <input
-                value={form.slug}
-                onChange={(e) => setForm({ ...form, slug: e.target.value })}
-                onBlur={() => !editing && !form.slug && setForm((prev) => ({ ...prev, slug: slugify(prev.title) }))}
-                className={inputClass}
-                placeholder="Auto-generated from title on create"
-              />
-            </div>
-            <div>
-              <label className={labelClass}>Excerpt</label>
-              <textarea value={form.excerpt} onChange={(e) => setForm({ ...form, excerpt: e.target.value })} className={inputClass} rows={2} />
-            </div>
-            <div>
-              <label className={labelClass}>Content</label>
-              <textarea value={form.content} onChange={(e) => setForm({ ...form, content: e.target.value })} className={inputClass} rows={4} />
-            </div>
-            <div>
-              <label className={labelClass}>Image URL</label>
-              <input required value={form.image_url} onChange={(e) => setForm({ ...form, image_url: e.target.value })} className={inputClass} />
-            </div>
-            <div>
-              <label className={labelClass}>Image Alt</label>
-              <input value={form.image_alt} onChange={(e) => setForm({ ...form, image_alt: e.target.value })} className={inputClass} />
-            </div>
-            <label className="flex items-center gap-2 text-sm text-gray-700">
-              <input type="checkbox" checked={form.show_in_popup} onChange={(e) => setForm({ ...form, show_in_popup: e.target.checked })} />
-              Show in popup
-            </label>
-            <div>
-              <label className={labelClass}>Status</label>
-              <select value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value as Notice["status"] })} className={inputClass}>
-                <option value="draft">Draft</option>
-                <option value="published">Published</option>
-                <option value="archived">Archived</option>
-              </select>
-            </div>
-            <div>
-              <label className={labelClass}>Published at</label>
-              <input type="datetime-local" value={form.published_at} onChange={(e) => setForm({ ...form, published_at: e.target.value })} className={inputClass} />
-            </div>
-            <div>
-              <label className={labelClass}>Sort order</label>
-              <input type="number" value={form.sort_order} onChange={(e) => setForm({ ...form, sort_order: e.target.value })} className={inputClass} />
-            </div>
-            <div>
-              <label className={labelClass}>Meta title</label>
-              <input value={form.meta_title} onChange={(e) => setForm({ ...form, meta_title: e.target.value })} className={inputClass} />
-            </div>
-            <div>
-              <label className={labelClass}>Meta description</label>
-              <textarea value={form.meta_description} onChange={(e) => setForm({ ...form, meta_description: e.target.value })} className={inputClass} rows={2} />
-            </div>
-            <div className="flex gap-2">
-              <button type="submit" disabled={saving} className={btnPrimaryClass}>{saving ? "Saving..." : editing ? "Update" : "Create"}</button>
-              {editing ? <button type="button" onClick={resetForm} className={btnSecondaryClass}>Cancel</button> : null}
-            </div>
-          </form>
-        </AdminCard>
+      <AdminPageHeader
+        title="Notices"
+        description="Add and publish notices for the notice page."
+        action={
+          !showForm ? (
+            <button type="button" onClick={openAddForm} className={btnPrimaryClass}>
+              <FaPlus className="mr-2 h-3.5 w-3.5" />
+              Add Notice
+            </button>
+          ) : null
+        }
+      />
 
-        <AdminCard title="All Notices">
-          {loading ? <p className="text-sm text-gray-500">Loading...</p> : rows.length === 0 ? <p className="text-sm text-gray-500">No notices yet.</p> : (
-            <AdminTable headers={["Title", "Status", "Popup", "Actions"]}>
-              {rows.map((row) => (
-                <tr key={row.id}>
-                  <td className="px-3 py-3">
-                    <p className="font-medium text-gray-900">{row.title}</p>
-                    <p className="text-xs text-gray-500">{row.slug}</p>
-                  </td>
-                  <td className="px-3 py-3">{row.status}</td>
-                  <td className="px-3 py-3">{row.show_in_popup ? "Yes" : "No"}</td>
-                  <td className="px-3 py-3">
-                    <div className="flex gap-2">
-                      <button type="button" className={btnSecondaryClass} onClick={() => {
-                        setForm({
-                          id: row.id,
-                          title: row.title,
-                          slug: row.slug,
-                          excerpt: row.excerpt ?? "",
-                          content: row.content ?? "",
-                          image_url: row.image_url,
-                          image_alt: row.image_alt ?? "",
-                          show_in_popup: row.show_in_popup,
-                          status: row.status,
-                          published_at: row.published_at ? row.published_at.slice(0, 16) : "",
-                          sort_order: String(row.sort_order ?? 0),
-                          meta_title: row.meta_title ?? "",
-                          meta_description: row.meta_description ?? "",
-                        });
-                        setEditing(true);
-                      }}>Edit</button>
-                      <button type="button" className={btnDangerClass} onClick={() => handleDelete(row.id)}>Delete</button>
-                    </div>
-                  </td>
+      {message ? <AdminAlert type={message.type} message={message.text} /> : null}
+
+      {showForm ? (
+        <div className="mb-6">
+          <AdminCard title={editing ? "Edit Notice" : "Add Notice"}>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div>
+                <label className={labelClass}>Title</label>
+                <input
+                  required
+                  value={form.title}
+                  onChange={(event) => setForm({ ...form, title: event.target.value })}
+                  className={inputClass}
+                />
+              </div>
+
+              <div>
+                <label className={labelClass}>Content</label>
+                <textarea
+                  required
+                  value={form.content}
+                  onChange={(event) => setForm({ ...form, content: event.target.value })}
+                  rows={5}
+                  className={inputClass}
+                />
+              </div>
+
+              <div>
+                <label className={labelClass}>Image</label>
+                <ImageInput
+                  mode={imageMode}
+                  onModeChange={setImageMode}
+                  urlValue={form.image_url}
+                  onUrlChange={(value) => setForm({ ...form, image_url: value })}
+                  file={imageFile}
+                  onFileChange={setImageFile}
+                  existingPath={editing ? form.image_url : ""}
+                />
+              </div>
+
+              <label className="flex items-center gap-2 text-sm text-gray-700">
+                <input
+                  type="checkbox"
+                  checked={form.published}
+                  onChange={(event) =>
+                    setForm({ ...form, published: event.target.checked })
+                  }
+                  className="h-4 w-4 rounded border-gray-300 text-green-600 focus:ring-green-600"
+                />
+                Publish on site
+              </label>
+
+              <div className="flex gap-2">
+                <button type="submit" disabled={saving} className={btnPrimaryClass}>
+                  {saving ? "Saving..." : editing ? "Update Notice" : "Add Notice"}
+                </button>
+                <button type="button" onClick={resetForm} className={btnSecondaryClass}>
+                  Cancel
+                </button>
+              </div>
+            </form>
+          </AdminCard>
+        </div>
+      ) : null}
+
+      <AdminCard title={`All Notices (${rows.length})`}>
+        {loading ? (
+          <p className="text-sm text-gray-500">Loading...</p>
+        ) : rows.length === 0 ? (
+          <div className="rounded-lg border border-dashed border-gray-300 px-6 py-10 text-center">
+            <p className="text-sm text-gray-500">No notices yet.</p>
+            <button type="button" onClick={openAddForm} className={`${btnPrimaryClass} mt-4`}>
+              <FaPlus className="mr-2 h-3.5 w-3.5" />
+              Add your first notice
+            </button>
+          </div>
+        ) : (
+          <div className="overflow-x-auto rounded-lg border border-gray-200">
+            <table className="min-w-full divide-y divide-gray-200 text-sm">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">
+                    Image
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">
+                    Title
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">
+                    Status
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">
+                    Published
+                  </th>
+                  <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-gray-500">
+                    Actions
+                  </th>
                 </tr>
-              ))}
-            </AdminTable>
-          )}
-        </AdminCard>
-      </div>
+              </thead>
+              <tbody className="divide-y divide-gray-100 bg-white">
+                {rows.map((row) => (
+                  <tr key={row.id} className="transition hover:bg-gray-50/80">
+                    <td className="px-4 py-4 align-top">
+                      <div className="h-14 w-20 overflow-hidden rounded-lg border border-gray-200 bg-gray-50">
+                        <img
+                          src={getMediaUrl(row.image_url)}
+                          alt={row.title}
+                          className="h-full w-full object-cover"
+                        />
+                      </div>
+                    </td>
+                    <td className="max-w-xs px-4 py-4 align-top">
+                      <p className="font-semibold text-gray-900">{row.title}</p>
+                      <p className="mt-1 line-clamp-2 text-xs text-gray-500">
+                        {row.content}
+                      </p>
+                    </td>
+                    <td className="px-4 py-4 align-top">
+                      <span
+                        className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold capitalize ${statusClass(row.status)}`}
+                      >
+                        {row.status}
+                      </span>
+                    </td>
+                    <td className="whitespace-nowrap px-4 py-4 align-top text-gray-500">
+                      {formatDate(row.published_at ?? row.created_at)}
+                    </td>
+                    <td className="px-4 py-4 align-top">
+                      <div className="flex justify-end gap-2">
+                        <button
+                          type="button"
+                          aria-label={`Edit ${row.title}`}
+                          title="Edit notice"
+                          className={btnIconClass}
+                          onClick={() => openEditForm(row)}
+                        >
+                          <FaPen className="h-3.5 w-3.5" />
+                        </button>
+                        <button
+                          type="button"
+                          aria-label={`Delete ${row.title}`}
+                          title="Delete notice"
+                          className={btnIconDangerClass}
+                          onClick={() => handleDelete(row.id)}
+                        >
+                          <FaTrash className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </AdminCard>
     </div>
   );
 }

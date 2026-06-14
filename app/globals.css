@@ -12,6 +12,15 @@
   font-family: "Poppins", sans-serif;
 }
 
+@keyframes loader-bar {
+  0% {
+    transform: translateX(-120%);
+  }
+  100% {
+    transform: translateX(320%);
+  }
+}
+
 .pagination {
   display: flex;
   justify-content: center;

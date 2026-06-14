@@ -1,10 +1,15 @@
-import React from 'react';
+import Image from "next/image";
 
-const Loader: React.FC = () => {
+const Loader = () => {
   return (
-    <div className="flex flex-col items-center justify-center h-screen">
-      <div className="w-24 h-24 border-8 border-dashed rounded-full animate-spin border-blue-600"></div>
-      <span className="mt-4 text-blue-600 text-2xl font-semibold">Loading...</span>
+    <div className="flex min-h-[40vh] flex-col items-center justify-center py-16">
+      <div className="relative mb-6 h-16 w-16">
+        <div className="absolute inset-0 rounded-full border-4 border-green-200 border-t-green-600 animate-spin" />
+        <div className="absolute inset-1 overflow-hidden rounded-full bg-white">
+          <Image src="/sndblogo1.png" alt="SNDB" fill className="object-contain p-1.5" />
+        </div>
+      </div>
+      <p className="text-sm font-medium text-green-700">Loading...</p>
     </div>
   );
 };

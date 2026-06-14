@@ -90,23 +90,32 @@ function normalizeBlog(row: BlogRow): BlogPost {
   return { ...row, category };
 }
 
-export async function getPublishedBlogs(options: { limit?: number } = {}) {
+export async function getPublishedBlogs(
+  options: { limit?: number; page?: number; pageSize?: number } = {}
+) {
+  const { limit, page = 1, pageSize } = options;
   const supabase = createClient();
-  const { limit } = options;
 
   let query = supabase
     .from("blogs")
-    .select(blogSelect)
+    .select(blogSelect, { count: "exact" })
     .eq("status", "published")
     .order("published_at", { ascending: false });
 
-  if (limit) {
+  if (pageSize) {
+    const from = (page - 1) * pageSize;
+    query = query.range(from, from + pageSize - 1);
+  } else if (limit) {
     query = query.limit(limit);
   }
 
-  const { data, error } = await query;
+  const { data, error, count } = await query;
   if (error) throw error;
-  return ((data ?? []) as BlogRow[]).map(normalizeBlog);
+
+  return {
+    posts: ((data ?? []) as BlogRow[]).map(normalizeBlog),
+    total: count ?? 0,
+  };
 }
 
 export async function getBlogBySlug(slug: string) {
