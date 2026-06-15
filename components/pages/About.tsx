@@ -2,8 +2,9 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { FaArrowRight } from "react-icons/fa";
+import { FaArrowRight, FaChevronDown } from "react-icons/fa";
 import { getPublishedBlogCount } from "@/utils/supabase/blogs";
+import { getActiveFaqs, type Faq } from "@/utils/supabase/faqs";
 import { getMemberCount } from "@/utils/supabase/members";
 import { getPublishedNoticeCount } from "@/utils/supabase/notices";
 import {
@@ -84,9 +85,118 @@ const StatsSection = () => {
   );
 };
 
+const FaqSection = () => {
+  const [faqs, setFaqs] = useState<Faq[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [openId, setOpenId] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const loadFaqs = async () => {
+      setLoading(true);
+
+      try {
+        const data = await getActiveFaqs();
+        if (!cancelled) {
+          setFaqs(data);
+          setOpenId(data[0]?.id ?? null);
+        }
+      } catch {
+        if (!cancelled) {
+          setFaqs([]);
+        }
+      } finally {
+        if (!cancelled) {
+          setLoading(false);
+        }
+      }
+    };
+
+    loadFaqs();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  return (
+    <section className="border-t border-green-200/60 bg-[#e4f7ef] py-12 md:py-16">
+      <PageContainer>
+        <div className="mx-auto mb-8 max-w-2xl text-center md:mb-10">
+          <SectionHeader
+            label="FAQ"
+            heading="Frequently Asked Questions"
+            description="Common questions about SNDB, membership, and how to get in touch."
+            as="h3"
+          />
+        </div>
+
+        {loading ? (
+          <div className="mx-auto max-w-3xl space-y-3">
+            {[...Array(3)].map((_, index) => (
+              <div
+                key={index}
+                className="h-16 animate-pulse rounded-xl border border-green-200/70 bg-white/70"
+              />
+            ))}
+          </div>
+        ) : faqs.length === 0 ? (
+          <p className="text-center text-sm text-gray-600">
+            FAQ content will appear here soon.
+          </p>
+        ) : (
+          <div className="mx-auto max-w-3xl space-y-3">
+            {faqs.map((faq, index) => {
+              const isOpen = openId === faq.id;
+
+              return (
+                <article
+                  key={faq.id}
+                  className="overflow-hidden rounded-xl border border-green-200/70 bg-white/95 shadow-sm"
+                >
+                  <button
+                    type="button"
+                    aria-expanded={isOpen}
+                    onClick={() => setOpenId(isOpen ? null : faq.id)}
+                    className="flex w-full items-start gap-4 px-5 py-4 text-left transition hover:bg-[#f4fbf7]"
+                  >
+                    <span className="mt-0.5 inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-green-600 text-xs font-bold text-white">
+                      {index + 1}
+                    </span>
+                    <span className="flex-1 pr-2 text-base font-semibold text-gray-900">
+                      {faq.question}
+                    </span>
+                    <FaChevronDown
+                      className={[
+                        "mt-1 h-4 w-4 shrink-0 text-green-700 transition-transform duration-200",
+                        isOpen ? "rotate-180" : "",
+                      ].join(" ")}
+                    />
+                  </button>
+                  {isOpen ? (
+                    <div className="border-t border-green-100 px-5 pb-5 pt-4 pl-16">
+                      <p className="text-sm leading-relaxed text-gray-600">
+                        {faq.answer}
+                      </p>
+                    </div>
+                  ) : null}
+                </article>
+              );
+            })}
+          </div>
+        )}
+      </PageContainer>
+    </section>
+  );
+};
+
 const aboutimg = "/about.jpg";
 
-const About: React.FC<{ showStats?: boolean }> = ({ showStats = false }) => {
+const About: React.FC<{ showStats?: boolean; showFaq?: boolean }> = ({
+  showStats = false,
+  showFaq = false,
+}) => {
   return (
     <>
       <PageSection>
@@ -150,6 +260,7 @@ const About: React.FC<{ showStats?: boolean }> = ({ showStats = false }) => {
       </PageSection>
 
       {showStats && <StatsSection />}
+      {showFaq && <FaqSection />}
     </>
   );
 };

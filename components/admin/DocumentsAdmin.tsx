@@ -1,7 +1,7 @@
 "use client";
 
 import { FormEvent, useEffect, useState } from "react";
-import { FaExternalLinkAlt, FaFilePdf, FaPen, FaPlus, FaTrash } from "react-icons/fa";
+import { FaExternalLinkAlt, FaFilePdf, FaImage, FaPen, FaPlus, FaTrash } from "react-icons/fa";
 import FileInput, { type FileInputMode } from "@/components/admin/FileInput";
 import {
   AdminAlert,
@@ -19,6 +19,7 @@ import {
 import { getMediaUrl } from "@/lib/mediaUrl";
 import { uploadSiteDocument } from "@/utils/supabase/mediaUpload";
 import { createClient } from "@/utils/supabase/client";
+import { getDocumentFileKind } from "@/utils/supabase/documents";
 
 type DocumentRow = {
   id: string;
@@ -227,13 +228,31 @@ export default function DocumentsAdmin() {
           </div>
         ) : (
           <ul className="divide-y divide-gray-100">
-            {rows.map((row) => (
+            {rows.map((row) => {
+              const fileKind = getDocumentFileKind(row.file_path);
+
+              return (
               <li
                 key={row.id}
                 className="flex flex-col gap-4 py-4 first:pt-0 last:pb-0 sm:flex-row sm:items-center"
               >
-                <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-lg border border-red-100 bg-red-50 text-red-600">
-                  <FaFilePdf className="h-6 w-6" />
+                <div
+                  className={[
+                    "flex h-14 w-14 shrink-0 items-center justify-center rounded-lg border",
+                    fileKind === "pdf"
+                      ? "border-red-100 bg-red-50 text-red-600"
+                      : fileKind === "image"
+                        ? "border-green-100 bg-green-50 text-green-700"
+                        : "border-gray-200 bg-gray-50 text-gray-600",
+                  ].join(" ")}
+                >
+                  {fileKind === "pdf" ? (
+                    <FaFilePdf className="h-6 w-6" />
+                  ) : fileKind === "image" ? (
+                    <FaImage className="h-6 w-6" />
+                  ) : (
+                    <FaFilePdf className="h-6 w-6" />
+                  )}
                 </div>
 
                 <div className="min-w-0 flex-1">
@@ -270,7 +289,8 @@ export default function DocumentsAdmin() {
                   </button>
                 </div>
               </li>
-            ))}
+              );
+            })}
           </ul>
         )}
       </AdminCard>

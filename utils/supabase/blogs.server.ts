@@ -1,4 +1,4 @@
-import { createClient } from "@/utils/supabase/server";
+import { createPublicServerClient } from "@/utils/supabase/public.server";
 import {
   blogSelect,
   type BlogPost,
@@ -17,7 +17,7 @@ function normalizeBlog(row: BlogRow): BlogPost {
 }
 
 export async function getBlogBySlugServer(slug: string): Promise<BlogPost | null> {
-  const supabase = await createClient();
+  const supabase = createPublicServerClient();
 
   const { data, error } = await supabase
     .from("blogs")
@@ -31,7 +31,7 @@ export async function getBlogBySlugServer(slug: string): Promise<BlogPost | null
 }
 
 export async function getPublishedBlogSlugs(): Promise<string[]> {
-  const supabase = await createClient();
+  const supabase = createPublicServerClient();
 
   const { data, error } = await supabase
     .from("blogs")

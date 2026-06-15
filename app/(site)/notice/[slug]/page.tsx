@@ -17,6 +17,7 @@ import {
 } from "@/utils/supabase/notices.server";
 
 export const revalidate = 300;
+export const dynamicParams = true;
 
 type PageProps = {
   params: Promise<{ slug: string }>;

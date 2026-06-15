@@ -1,10 +1,10 @@
-import { createClient } from "@/utils/supabase/server";
+import { createPublicServerClient } from "@/utils/supabase/public.server";
 import { noticeSelect, type Notice } from "@/utils/supabase/notices";
 
 export async function getNoticeBySlugServer(
   slug: string
 ): Promise<Notice | null> {
-  const supabase = await createClient();
+  const supabase = createPublicServerClient();
 
   const { data, error } = await supabase
     .from("notices")
@@ -18,7 +18,7 @@ export async function getNoticeBySlugServer(
 }
 
 export async function getPublishedNoticeSlugs(): Promise<string[]> {
-  const supabase = await createClient();
+  const supabase = createPublicServerClient();
 
   const { data, error } = await supabase
     .from("notices")

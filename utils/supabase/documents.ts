@@ -8,6 +8,27 @@ export type Document = {
   updated_at: string;
 };
 
+export type DocumentFileKind = "pdf" | "image" | "other";
+
+export function getDocumentFileKind(filePath: string): DocumentFileKind {
+  const ext = filePath.split(/[?#]/)[0].split(".").pop()?.toLowerCase() ?? "";
+
+  if (ext === "pdf") return "pdf";
+  if (["jpg", "jpeg", "png", "gif", "webp", "bmp", "svg", "avif"].includes(ext)) {
+    return "image";
+  }
+
+  return "other";
+}
+
+export function isDocumentPdf(filePath: string): boolean {
+  return getDocumentFileKind(filePath) === "pdf";
+}
+
+export function isDocumentImage(filePath: string): boolean {
+  return getDocumentFileKind(filePath) === "image";
+}
+
 export async function getDocuments(): Promise<Document[]> {
   const supabase = createClient();
 

@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState, useEffect } from "react";
 import NepaliDate from "nepali-datetime";
 import { FaCalendarAlt } from "react-icons/fa";
@@ -28,10 +29,10 @@ const LogoTop: React.FC = () => {
     <div className="max-w-7xl mx-auto ">
       <div className="md:flex justify-between items-center py-2  hidden ">
         {/* Left side: Logo and Text */}
-        <div className="flex items-center space-x-4">
+        <Link href="/" className="flex items-center space-x-4 transition-opacity hover:opacity-90">
           {/* Logo */}
           <img
-            src="/sndblogo1.png" // replace with your logo URL
+            src="/sndblogo1.png"
             alt="Logo"
             className="h-28 w-28 object-contain "
           />
@@ -45,7 +46,7 @@ const LogoTop: React.FC = () => {
               Society For Nepalese Doctors from Bangladesh
             </p>
           </div>
-        </div>
+        </Link>
 
         {/* Right side: Date display */}
         <div className="flex overflow-hidden rounded-xl border border-green-200/80 bg-gradient-to-br from-white to-green-50/80 shadow-sm">

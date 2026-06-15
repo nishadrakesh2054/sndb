@@ -1,8 +1,8 @@
-import { createClient } from "@/utils/supabase/server";
+import { createPublicServerClient } from "@/utils/supabase/public.server";
 import type { HeroSlide } from "@/utils/supabase/heroes";
 
 export async function getHeroSlidesServer(limit = 3): Promise<HeroSlide[]> {
-  const supabase = await createClient();
+  const supabase = createPublicServerClient();
 
   const { data, error } = await supabase
     .from("hero_slides")

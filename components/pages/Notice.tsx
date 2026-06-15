@@ -1,9 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { FaArrowRight, FaDownload } from "react-icons/fa";
+import { FaArrowRight, FaDownload, FaFilePdf, FaImage } from "react-icons/fa";
 import Link from "next/link";
-import { getDocuments, type Document } from "@/utils/supabase/documents";
+import { getDocuments, getDocumentFileKind, type Document } from "@/utils/supabase/documents";
 import {
   getNoticeDisplayDate,
   getNoticeImageAlt,
@@ -40,6 +40,41 @@ const SectionCard = ({
     {children}
   </div>
 );
+
+const DocumentFileIcon = ({ filePath }: { filePath: string }) => {
+  const kind = getDocumentFileKind(filePath);
+
+  if (kind === "pdf") {
+    return (
+      <div
+        className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg border border-red-100 bg-red-50 text-red-600"
+        aria-hidden="true"
+      >
+        <FaFilePdf className="h-5 w-5" />
+      </div>
+    );
+  }
+
+  if (kind === "image") {
+    return (
+      <div
+        className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg border border-green-100 bg-green-50 text-green-700"
+        aria-hidden="true"
+      >
+        <FaImage className="h-5 w-5" />
+      </div>
+    );
+  }
+
+  return (
+    <div
+      className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg border border-gray-200 bg-gray-50 text-gray-600"
+      aria-hidden="true"
+    >
+      <FaDownload className="h-5 w-5" />
+    </div>
+  );
+};
 
 const Notice: React.FC = () => {
   const [documents, setDocuments] = useState<Document[]>([]);
@@ -165,9 +200,12 @@ const Notice: React.FC = () => {
                         key={document.id}
                         className="flex flex-col gap-3 rounded-lg border border-gray-100 p-4 sm:flex-row sm:items-center sm:justify-between"
                       >
-                        <h3 className="text-sm font-semibold text-gray-800 sm:pr-4">
-                          {document.title}
-                        </h3>
+                        <div className="flex min-w-0 flex-1 items-center gap-3 sm:pr-4">
+                          <DocumentFileIcon filePath={document.file_path} />
+                          <h3 className="text-sm font-semibold text-gray-800">
+                            {document.title}
+                          </h3>
+                        </div>
                         <a
                           href={getMediaUrl(document.file_path)}
                           download

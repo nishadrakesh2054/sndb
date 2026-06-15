@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
 import { FaBars, FaTimes, FaChevronDown, FaChevronRight } from "react-icons/fa";
 import { usePathname } from "next/navigation"
@@ -88,7 +89,11 @@ const Header: React.FC = () => {
       <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3 sm:px-6 lg:px-8">
         {/* Mobile branding */}
         <div className="flex w-full items-center justify-between md:hidden">
-          <div className="flex min-w-0 items-center gap-2">
+          <Link
+            href="/"
+            onClick={closeMenu}
+            className="flex min-w-0 items-center gap-2 transition-opacity hover:opacity-90"
+          >
             <img
               src="/sndblogo1.png"
               alt="SNDB Logo"
@@ -102,7 +107,7 @@ const Header: React.FC = () => {
                 Society For Nepalese Doctors from Bangladesh
               </p>
             </div>
-          </div>
+          </Link>
 
           <button
             type="button"

@@ -33,6 +33,7 @@ export const adminNavGroups: AdminNavGroup[] = [
     items: [
       { href: "/dashboard/blogs", label: "Blogs" },
       { href: "/dashboard/notices", label: "Notices" },
+      { href: "/dashboard/faqs", label: "FAQs" },
       { href: "/dashboard/gallery", label: "Gallery" },
       { href: "/dashboard/documents", label: "Documents" },
     ],
