@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useEffect, useState } from "react";
+import { FormEvent, useEffect, useRef, useState } from "react";
 import { FaPen, FaPlus, FaTrash } from "react-icons/fa";
 import ImageInput, { type ImageInputMode } from "@/components/admin/ImageInput";
 import {
@@ -50,10 +50,17 @@ async function revalidateHomepage() {
 
 function nextSortOrder(rows: HeroSlide[]): number {
   if (rows.length === 0) return 1;
-  return Math.max(...rows.map((row) => row.sort_order), 0) + 1;
+  return Math.max(...rows.map((row) => row.sort_order ?? 0), 0) + 1;
+}
+
+function scrollToForm(formRef: React.RefObject<HTMLDivElement | null>) {
+  requestAnimationFrame(() => {
+    formRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  });
 }
 
 export default function HeroSlidesAdmin() {
+  const formRef = useRef<HTMLDivElement>(null);
   const [rows, setRows] = useState<HeroSlide[]>([]);
   const [form, setForm] = useState(emptyForm);
   const [editing, setEditing] = useState(false);
@@ -69,14 +76,20 @@ export default function HeroSlidesAdmin() {
     const supabase = createClient();
     const { data, error } = await supabase
       .from("hero_slides")
-      .select("id, title, image, sort_order, created_at, updated_at")
+      .select("*")
       .order("sort_order", { ascending: true })
       .order("created_at", { ascending: true });
 
     if (error) {
       setMessage({ type: "error", text: error.message });
+      setRows([]);
     } else {
-      setRows((data ?? []) as HeroSlide[]);
+      setRows(
+        ((data ?? []) as HeroSlide[]).map((row, index) => ({
+          ...row,
+          sort_order: row.sort_order ?? index + 1,
+        }))
+      );
     }
     setLoading(false);
   };
@@ -103,6 +116,7 @@ export default function HeroSlidesAdmin() {
     setImageFile(null);
     setShowForm(true);
     setMessage(null);
+    scrollToForm(formRef);
   };
 
   const openEditForm = (row: HeroSlide) => {
@@ -110,13 +124,14 @@ export default function HeroSlidesAdmin() {
       id: row.id,
       title: row.title,
       image: row.image,
-      sort_order: String(row.sort_order),
+      sort_order: String(row.sort_order ?? 1),
     });
     setEditing(true);
     setImageMode("url");
     setImageFile(null);
     setShowForm(true);
     setMessage(null);
+    scrollToForm(formRef);
   };
 
   const handleSubmit = async (event: FormEvent) => {
@@ -209,10 +224,10 @@ export default function HeroSlidesAdmin() {
   };
 
   return (
-    <div>
+    <div className="space-y-6">
       <AdminPageHeader
         title="Hero Slides"
-        description="Homepage carousel images and titles. Lower display order appears first."
+        description="Homepage carousel. Set display order: 1 shows first, then 2, 3…"
         action={
           !showForm ? (
             <button type="button" onClick={openAddForm} className={btnPrimaryClass}>
@@ -226,34 +241,38 @@ export default function HeroSlidesAdmin() {
       {message ? <AdminAlert type={message.type} message={message.text} /> : null}
 
       {showForm ? (
-        <div className="mb-6">
+        <div ref={formRef}>
           <AdminCard title={editing ? "Edit Slide" : "Add Slide"}>
             <form onSubmit={handleSubmit} className="space-y-4">
-              <div>
-                <label className={labelClass}>Title</label>
-                <input
-                  required
-                  value={form.title}
-                  onChange={(event) => setForm({ ...form, title: event.target.value })}
-                  className={inputClass}
-                />
-              </div>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div>
+                  <label className={labelClass}>Title</label>
+                  <input
+                    required
+                    value={form.title}
+                    onChange={(event) => setForm({ ...form, title: event.target.value })}
+                    className={inputClass}
+                  />
+                </div>
 
-              <div>
-                <label className={labelClass}>Display order</label>
-                <input
-                  type="number"
-                  min={0}
-                  required
-                  value={form.sort_order}
-                  onChange={(event) =>
-                    setForm({ ...form, sort_order: event.target.value })
-                  }
-                  className={inputClass}
-                />
-                <p className="mt-1 text-xs text-gray-500">
-                  Lower numbers show first (1, 2, 3…).
-                </p>
+                <div>
+                  <label className={labelClass}>Display order</label>
+                  <input
+                    type="number"
+                    min={0}
+                    step={1}
+                    required
+                    value={form.sort_order}
+                    onChange={(event) =>
+                      setForm({ ...form, sort_order: event.target.value })
+                    }
+                    className={inputClass}
+                    placeholder="1"
+                  />
+                  <p className="mt-1 text-xs text-gray-500">
+                    Lower number = shown first on homepage slider.
+                  </p>
+                </div>
               </div>
 
               <div>
@@ -297,52 +316,91 @@ export default function HeroSlidesAdmin() {
             </button>
           </div>
         ) : (
-          <ul className="divide-y divide-gray-100">
-            {rows.map((row) => (
-              <li
-                key={row.id}
-                className="flex flex-col gap-4 py-4 first:pt-0 last:pb-0 sm:flex-row sm:items-center"
-              >
-                <div className="flex h-24 w-full shrink-0 items-center justify-center overflow-hidden rounded-lg border border-gray-200 bg-gray-50 sm:h-20 sm:w-16">
-                  <span className="text-lg font-bold text-green-700">{row.sort_order}</span>
-                </div>
+          <div className="overflow-x-auto rounded-lg border border-gray-200">
+            <table className="min-w-full divide-y divide-gray-200 text-sm">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">
+                    Order
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">
+                    Image
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">
+                    Title
+                  </th>
+                  <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-gray-500">
+                    Actions
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100 bg-white">
+                {rows.map((row) => {
+                  const isEditingRow = editing && form.id === row.id;
 
-                <div className="h-24 w-full shrink-0 overflow-hidden rounded-lg border border-gray-200 bg-gray-50 sm:h-20 sm:w-36">
-                  <img
-                    src={getMediaUrl(row.image)}
-                    alt={row.title}
-                    className="h-full w-full object-cover"
-                  />
-                </div>
-
-                <div className="min-w-0 flex-1">
-                  <p className="font-semibold text-gray-900">{row.title}</p>
-                  <p className="mt-1 text-xs text-gray-500">Order: {row.sort_order}</p>
-                </div>
-
-                <div className="flex shrink-0 gap-2">
-                  <button
-                    type="button"
-                    aria-label={`Edit ${row.title}`}
-                    title="Edit slide"
-                    className={btnIconClass}
-                    onClick={() => openEditForm(row)}
-                  >
-                    <FaPen className="h-3.5 w-3.5" />
-                  </button>
-                  <button
-                    type="button"
-                    aria-label={`Delete ${row.title}`}
-                    title="Delete slide"
-                    className={btnIconDangerClass}
-                    onClick={() => handleDelete(row.id)}
-                  >
-                    <FaTrash className="h-3.5 w-3.5" />
-                  </button>
-                </div>
-              </li>
-            ))}
-          </ul>
+                  return (
+                    <tr
+                      key={row.id}
+                      className={[
+                        "transition",
+                        isEditingRow
+                          ? "bg-green-50 ring-2 ring-inset ring-green-400"
+                          : "hover:bg-gray-50/80",
+                      ].join(" ")}
+                    >
+                      <td className="whitespace-nowrap px-4 py-4 align-top">
+                        <span className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-green-100 text-sm font-bold text-green-800">
+                          {row.sort_order}
+                        </span>
+                      </td>
+                      <td className="px-4 py-4 align-top">
+                        <div className="h-14 w-24 overflow-hidden rounded-lg border border-gray-200 bg-gray-50">
+                          <img
+                            src={getMediaUrl(row.image)}
+                            alt={row.title}
+                            className="h-full w-full object-cover"
+                          />
+                        </div>
+                      </td>
+                      <td className="max-w-md px-4 py-4 align-top">
+                        <p className="font-semibold text-gray-900">{row.title}</p>
+                        {isEditingRow ? (
+                          <span className="mt-1 inline-flex rounded-full bg-green-600 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-white">
+                            Editing
+                          </span>
+                        ) : null}
+                      </td>
+                      <td className="px-4 py-4 align-top">
+                        <div className="flex justify-end gap-2">
+                          <button
+                            type="button"
+                            aria-label={`Edit ${row.title}`}
+                            title="Edit slide"
+                            className={[
+                              btnIconClass,
+                              isEditingRow ? "border-green-500 bg-green-100 text-green-800" : "",
+                            ].join(" ")}
+                            onClick={() => openEditForm(row)}
+                          >
+                            <FaPen className="h-3.5 w-3.5" />
+                          </button>
+                          <button
+                            type="button"
+                            aria-label={`Delete ${row.title}`}
+                            title="Delete slide"
+                            className={btnIconDangerClass}
+                            onClick={() => handleDelete(row.id)}
+                          >
+                            <FaTrash className="h-3.5 w-3.5" />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
         )}
       </AdminCard>
     </div>
