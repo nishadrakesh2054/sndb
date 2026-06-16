@@ -24,6 +24,7 @@ type HeroSlide = {
   id: string;
   title: string;
   image: string;
+  sort_order: number;
   created_at: string;
   updated_at: string;
 };
@@ -32,7 +33,25 @@ const emptyForm = {
   id: "",
   title: "",
   image: "",
+  sort_order: "",
 };
+
+async function revalidateHomepage() {
+  try {
+    await fetch("/api/revalidate", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ path: "/" }),
+    });
+  } catch {
+    // Homepage still refreshes via client fetch in Hero.
+  }
+}
+
+function nextSortOrder(rows: HeroSlide[]): number {
+  if (rows.length === 0) return 1;
+  return Math.max(...rows.map((row) => row.sort_order), 0) + 1;
+}
 
 export default function HeroSlidesAdmin() {
   const [rows, setRows] = useState<HeroSlide[]>([]);
@@ -50,8 +69,9 @@ export default function HeroSlidesAdmin() {
     const supabase = createClient();
     const { data, error } = await supabase
       .from("hero_slides")
-      .select("*")
-      .order("created_at", { ascending: false });
+      .select("id, title, image, sort_order, created_at, updated_at")
+      .order("sort_order", { ascending: true })
+      .order("created_at", { ascending: true });
 
     if (error) {
       setMessage({ type: "error", text: error.message });
@@ -74,7 +94,10 @@ export default function HeroSlidesAdmin() {
   };
 
   const openAddForm = () => {
-    setForm(emptyForm);
+    setForm({
+      ...emptyForm,
+      sort_order: String(nextSortOrder(rows)),
+    });
     setEditing(false);
     setImageMode("upload");
     setImageFile(null);
@@ -83,7 +106,12 @@ export default function HeroSlidesAdmin() {
   };
 
   const openEditForm = (row: HeroSlide) => {
-    setForm({ id: row.id, title: row.title, image: row.image });
+    setForm({
+      id: row.id,
+      title: row.title,
+      image: row.image,
+      sort_order: String(row.sort_order),
+    });
     setEditing(true);
     setImageMode("url");
     setImageFile(null);
@@ -109,18 +137,24 @@ export default function HeroSlidesAdmin() {
         throw new Error("Please enter an image URL or path.");
       }
 
+      const sortOrder = Number(form.sort_order);
+      if (!Number.isFinite(sortOrder) || sortOrder < 0) {
+        throw new Error("Display order must be 0 or greater.");
+      }
+
       const supabase = createClient();
       const now = new Date().toISOString();
       const payload = {
-        id: form.id || crypto.randomUUID().replace(/-/g, "").slice(0, 24),
         title: form.title.trim(),
         image: imagePath,
+        sort_order: sortOrder,
         updated_at: now,
       };
 
       const { error } = editing
         ? await supabase.from("hero_slides").update(payload).eq("id", form.id)
         : await supabase.from("hero_slides").insert({
+            id: crypto.randomUUID().replace(/-/g, "").slice(0, 24),
             ...payload,
             created_at: now,
           });
@@ -129,6 +163,7 @@ export default function HeroSlidesAdmin() {
         throw error;
       }
 
+      await revalidateHomepage();
       setMessage({ type: "success", text: editing ? "Slide updated." : "Slide created." });
       resetForm();
       load();
@@ -143,13 +178,29 @@ export default function HeroSlidesAdmin() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm("Delete this hero slide?")) return;
+    if (!confirm("Delete this hero slide permanently?")) return;
+
     const supabase = createClient();
-    const { error } = await supabase.from("hero_slides").delete().eq("id", id);
+    const { data, error } = await supabase
+      .from("hero_slides")
+      .delete()
+      .eq("id", id)
+      .select("id");
+
     if (error) {
       setMessage({ type: "error", text: error.message });
       return;
     }
+
+    if (!data?.length) {
+      setMessage({
+        type: "error",
+        text: "Could not delete slide. Check that you are logged in as admin.",
+      });
+      return;
+    }
+
+    await revalidateHomepage();
     setMessage({ type: "success", text: "Slide deleted." });
     if (form.id === id) {
       resetForm();
@@ -161,7 +212,7 @@ export default function HeroSlidesAdmin() {
     <div>
       <AdminPageHeader
         title="Hero Slides"
-        description="Homepage carousel images and titles. Newest slides appear first (max 3 shown)."
+        description="Homepage carousel images and titles. Lower display order appears first."
         action={
           !showForm ? (
             <button type="button" onClick={openAddForm} className={btnPrimaryClass}>
@@ -177,40 +228,60 @@ export default function HeroSlidesAdmin() {
       {showForm ? (
         <div className="mb-6">
           <AdminCard title={editing ? "Edit Slide" : "Add Slide"}>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <label className={labelClass}>Title</label>
-              <input
-                required
-                value={form.title}
-                onChange={(event) => setForm({ ...form, title: event.target.value })}
-                className={inputClass}
-              />
-            </div>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div>
+                <label className={labelClass}>Title</label>
+                <input
+                  required
+                  value={form.title}
+                  onChange={(event) => setForm({ ...form, title: event.target.value })}
+                  className={inputClass}
+                />
+              </div>
 
-            <div>
-              <label className={labelClass}>Image</label>
-              <ImageInput
-                mode={imageMode}
-                onModeChange={setImageMode}
-                urlValue={form.image}
-                onUrlChange={(value) => setForm({ ...form, image: value })}
-                file={imageFile}
-                onFileChange={setImageFile}
-                existingPath={editing ? form.image : ""}
-              />
-            </div>
+              <div>
+                <label className={labelClass}>Display order</label>
+                <input
+                  type="number"
+                  min={0}
+                  required
+                  value={form.sort_order}
+                  onChange={(event) =>
+                    setForm({ ...form, sort_order: event.target.value })
+                  }
+                  className={inputClass}
+                />
+                <p className="mt-1 text-xs text-gray-500">
+                  Lower numbers show first (1, 2, 3…).
+                </p>
+              </div>
 
-            <div className="flex gap-2">
-              <button type="submit" disabled={saving} className={btnPrimaryClass}>
-                {saving ? "Saving..." : editing ? "Update Slide" : "Create Slide"}
-              </button>
-              <button type="button" onClick={resetForm} className={btnSecondaryClass}>
-                Cancel
-              </button>
-            </div>
-          </form>
-        </AdminCard>
+              <div>
+                <label className={labelClass}>Image</label>
+                <ImageInput
+                  mode={imageMode}
+                  onModeChange={setImageMode}
+                  urlValue={form.image}
+                  onUrlChange={(value) => setForm({ ...form, image: value })}
+                  file={imageFile}
+                  onFileChange={setImageFile}
+                  existingPath={editing ? form.image : ""}
+                />
+                <p className="mt-1 text-xs text-gray-500">
+                  Recommended: 1920 × 1080 px (16:9), important content centered.
+                </p>
+              </div>
+
+              <div className="flex gap-2">
+                <button type="submit" disabled={saving} className={btnPrimaryClass}>
+                  {saving ? "Saving..." : editing ? "Update Slide" : "Create Slide"}
+                </button>
+                <button type="button" onClick={resetForm} className={btnSecondaryClass}>
+                  Cancel
+                </button>
+              </div>
+            </form>
+          </AdminCard>
         </div>
       ) : null}
 
@@ -232,6 +303,10 @@ export default function HeroSlidesAdmin() {
                 key={row.id}
                 className="flex flex-col gap-4 py-4 first:pt-0 last:pb-0 sm:flex-row sm:items-center"
               >
+                <div className="flex h-24 w-full shrink-0 items-center justify-center overflow-hidden rounded-lg border border-gray-200 bg-gray-50 sm:h-20 sm:w-16">
+                  <span className="text-lg font-bold text-green-700">{row.sort_order}</span>
+                </div>
+
                 <div className="h-24 w-full shrink-0 overflow-hidden rounded-lg border border-gray-200 bg-gray-50 sm:h-20 sm:w-36">
                   <img
                     src={getMediaUrl(row.image)}
@@ -242,6 +317,7 @@ export default function HeroSlidesAdmin() {
 
                 <div className="min-w-0 flex-1">
                   <p className="font-semibold text-gray-900">{row.title}</p>
+                  <p className="mt-1 text-xs text-gray-500">Order: {row.sort_order}</p>
                 </div>
 
                 <div className="flex shrink-0 gap-2">

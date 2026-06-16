@@ -4,18 +4,21 @@ export type HeroSlide = {
   id: string;
   title: string;
   image: string;
+  sort_order: number;
   created_at: string;
   updated_at: string;
 };
 
-export async function getHeroSlides(limit = 3): Promise<HeroSlide[]> {
+const heroSelect = "id, title, image, sort_order, created_at, updated_at";
+
+export async function getHeroSlides(): Promise<HeroSlide[]> {
   const supabase = createClient();
 
   const { data, error } = await supabase
     .from("hero_slides")
-    .select("id, title, image, created_at, updated_at")
-    .order("created_at", { ascending: false })
-    .limit(limit);
+    .select(heroSelect)
+    .order("sort_order", { ascending: true })
+    .order("created_at", { ascending: true });
 
   if (error) throw error;
   return (data ?? []) as HeroSlide[];

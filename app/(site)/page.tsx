@@ -25,7 +25,7 @@ export const revalidate = 300;
 
 export default async function HomePage() {
   const [heroSlides, homeBlogs] = await Promise.all([
-    getHeroSlidesServer(3).catch(() => []),
+    getHeroSlidesServer().catch(() => []),
     getPublishedBlogsServer({ limit: 3 }).catch(() => ({
       posts: [],
       total: 0,

@@ -24,18 +24,13 @@ const Hero = ({
   const [isPaused, setIsPaused] = useState(false);
 
   useEffect(() => {
-    if (initialSlides.length > 0) {
-      return;
-    }
-
     let cancelled = false;
 
     const loadSlides = async () => {
-      setLoading(true);
       setError(null);
 
       try {
-        const data = await getHeroSlides(3);
+        const data = await getHeroSlides();
         if (!cancelled) {
           setSlides(data);
         }
@@ -52,12 +47,22 @@ const Hero = ({
       }
     };
 
+    if (initialSlides.length === 0) {
+      setLoading(true);
+    }
+
     loadSlides();
 
     return () => {
       cancelled = true;
     };
-  }, [initialSlides.length]);
+  }, []);
+
+  useEffect(() => {
+    if (current >= slides.length && slides.length > 0) {
+      setCurrent(0);
+    }
+  }, [current, slides.length]);
 
   const goToSlide = useCallback(
     (index: number) => {

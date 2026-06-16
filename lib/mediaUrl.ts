@@ -25,6 +25,10 @@ export function getMediaUrl(path: string): string {
       return resolveLegacyGalleryFile(fileName);
     }
 
+    if (folder === "hero") {
+      return `/uploads/hero/${fileName}`;
+    }
+
     return fileName.startsWith("/") ? fileName : `/${fileName}`;
   }
 
