@@ -7,29 +7,22 @@ export type Member = {
   position: string;
   phone: number | null;
   email: string | null;
+  sort_order: number;
   created_at: string;
   updated_at: string;
 };
-
-function sortMembersByTitle(members: Member[]): Member[] {
-  return [...members].sort((a, b) =>
-    a.title.replace(/^dr\.?\s*/i, "").localeCompare(
-      b.title.replace(/^dr\.?\s*/i, ""),
-      undefined,
-      { sensitivity: "base" }
-    )
-  );
-}
 
 export async function getAllMembers(): Promise<Member[]> {
   const supabase = createClient();
 
   const { data, error } = await supabase
     .from("members")
-    .select("id, title, image, position, phone, email, created_at, updated_at");
+    .select("id, title, image, position, phone, email, sort_order, created_at, updated_at")
+    .order("sort_order", { ascending: true })
+    .order("title", { ascending: true });
 
   if (error) throw error;
-  return sortMembersByTitle((data ?? []) as Member[]);
+  return (data ?? []) as Member[];
 }
 
 export async function getMemberCount(): Promise<number> {

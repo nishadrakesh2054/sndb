@@ -1,7 +1,7 @@
 "use client";
 
 import { FormEvent, useEffect, useState } from "react";
-import { FaExternalLinkAlt, FaFilePdf, FaImage, FaPen, FaPlus, FaTrash } from "react-icons/fa";
+import { FaExternalLinkAlt, FaFilePdf, FaPen, FaPlus, FaTrash } from "react-icons/fa";
 import FileInput, { type FileInputMode } from "@/components/admin/FileInput";
 import {
   AdminAlert,
@@ -100,7 +100,7 @@ export default function DocumentsAdmin() {
         if (selectedFile) {
           filePath = await uploadSiteDocument("documents", selectedFile);
         } else if (!editing || !filePath) {
-          throw new Error("Please choose a PDF file to upload.");
+          throw new Error("Please choose a PDF or image file to upload.");
         }
       } else if (!filePath) {
         throw new Error("Please enter a file URL or path.");
@@ -161,7 +161,7 @@ export default function DocumentsAdmin() {
     <div>
       <AdminPageHeader
         title="Documents"
-        description="Manage downloadable PDF documents shown on the notice page."
+        description="Manage downloadable PDF and image documents shown on the notice page."
         action={
           !showForm ? (
             <button type="button" onClick={openAddForm} className={btnPrimaryClass}>
@@ -190,7 +190,7 @@ export default function DocumentsAdmin() {
               </div>
 
               <div>
-                <label className={labelClass}>PDF File</label>
+                <label className={labelClass}>File (PDF or image)</label>
                 <FileInput
                   mode={fileMode}
                   onModeChange={setFileMode}
@@ -199,6 +199,8 @@ export default function DocumentsAdmin() {
                   file={selectedFile}
                   onFileChange={setSelectedFile}
                   existingPath={editing ? form.file_path : ""}
+                  accept="application/pdf,.pdf,image/jpeg,image/png,image/webp,image/gif,.jpg,.jpeg,.png,.webp,.gif"
+                  hint="PDF or image up to 15 MB"
                 />
               </div>
 
@@ -236,24 +238,26 @@ export default function DocumentsAdmin() {
                 key={row.id}
                 className="flex flex-col gap-4 py-4 first:pt-0 last:pb-0 sm:flex-row sm:items-center"
               >
+                {fileKind === "image" ? (
+                  <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-lg border border-green-200 bg-white">
+                    <img
+                      src={getMediaUrl(row.file_path)}
+                      alt={row.title}
+                      className="h-full w-full object-cover"
+                    />
+                  </div>
+                ) : (
                 <div
                   className={[
                     "flex h-14 w-14 shrink-0 items-center justify-center rounded-lg border",
                     fileKind === "pdf"
                       ? "border-red-100 bg-red-50 text-red-600"
-                      : fileKind === "image"
-                        ? "border-green-100 bg-green-50 text-green-700"
-                        : "border-gray-200 bg-gray-50 text-gray-600",
+                      : "border-gray-200 bg-gray-50 text-gray-600",
                   ].join(" ")}
                 >
-                  {fileKind === "pdf" ? (
-                    <FaFilePdf className="h-6 w-6" />
-                  ) : fileKind === "image" ? (
-                    <FaImage className="h-6 w-6" />
-                  ) : (
-                    <FaFilePdf className="h-6 w-6" />
-                  )}
+                  <FaFilePdf className="h-6 w-6" />
                 </div>
+                )}
 
                 <div className="min-w-0 flex-1">
                   <p className="font-semibold text-gray-900">{row.title}</p>

@@ -7,11 +7,7 @@ export function getOptimizedImageSrc(path: string): string {
 export function canOptimizeImage(path: string): boolean {
   const url = getMediaUrl(path);
   if (!url) return false;
-  if (url.startsWith("/")) return true;
-  try {
-    const parsed = new URL(url);
-    return parsed.pathname.includes("/storage/v1/object/public/");
-  } catch {
-    return false;
-  }
+  // Only use next/image for static files in /public (avoids Vercel remote config errors).
+  if (url.startsWith("/") && !url.startsWith("//")) return true;
+  return false;
 }

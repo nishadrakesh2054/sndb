@@ -11,10 +11,15 @@ export type Document = {
 export type DocumentFileKind = "pdf" | "image" | "other";
 
 export function getDocumentFileKind(filePath: string): DocumentFileKind {
-  const ext = filePath.split(/[?#]/)[0].split(".").pop()?.toLowerCase() ?? "";
+  const normalized = filePath.replace(/\\/g, "/").toLowerCase();
+  const withoutQuery = normalized.split(/[?#]/)[0];
+  const ext = withoutQuery.split(".").pop() ?? "";
 
-  if (ext === "pdf") return "pdf";
-  if (["jpg", "jpeg", "png", "gif", "webp", "bmp", "svg", "avif"].includes(ext)) {
+  if (ext === "pdf" || withoutQuery.endsWith(".pdf")) return "pdf";
+  if (
+    ["jpg", "jpeg", "png", "gif", "webp", "bmp", "svg", "avif"].includes(ext) ||
+    /\.(jpe?g|png|gif|webp|bmp|svg|avif)$/.test(withoutQuery)
+  ) {
     return "image";
   }
 

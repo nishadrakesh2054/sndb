@@ -47,19 +47,33 @@ export async function uploadSiteMedia(folder: string, file: File): Promise<strin
   return `${BUCKET}/${path}`;
 }
 
-const DOCUMENT_TYPES = new Set(["application/pdf"]);
+const DOCUMENT_TYPES = new Set([
+  "application/pdf",
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+  "image/gif",
+]);
 const DOCUMENT_MAX_SIZE = 15 * 1024 * 1024;
 
 function buildDocumentPath(folder: string, file: File): string {
   const extension = file.name.split(".").pop()?.toLowerCase() || "pdf";
-  const safeExtension = extension === "pdf" ? "pdf" : "pdf";
+
+  if (file.type === "application/pdf") {
+    return `${folder}/${Date.now()}-${crypto.randomUUID()}.pdf`;
+  }
+
+  const safeExtension = ["jpg", "jpeg", "png", "webp", "gif"].includes(extension)
+    ? extension
+    : "jpg";
+
   return `${folder}/${Date.now()}-${crypto.randomUUID()}.${safeExtension}`;
 }
 
-/** Upload PDF to public site-media bucket; returns path stored in DB (site-media/...) */
+/** Upload PDF or image to public site-media bucket; returns path stored in DB (site-media/...) */
 export async function uploadSiteDocument(folder: string, file: File): Promise<string> {
   if (!DOCUMENT_TYPES.has(file.type)) {
-    throw new Error("Document must be a PDF file.");
+    throw new Error("Document must be a PDF or image file (JPEG, PNG, WebP, GIF).");
   }
 
   if (file.size > DOCUMENT_MAX_SIZE) {

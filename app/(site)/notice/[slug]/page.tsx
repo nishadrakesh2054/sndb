@@ -18,6 +18,7 @@ import {
 
 export const revalidate = 300;
 export const dynamicParams = true;
+export const dynamic = "force-dynamic";
 
 type PageProps = {
   params: Promise<{ slug: string }>;
@@ -60,7 +61,13 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
 export default async function Page({ params }: PageProps) {
   const { slug } = await params;
-  const notice = await getNoticeBySlugServer(slug);
+  let notice = null;
+
+  try {
+    notice = await getNoticeBySlugServer(slug);
+  } catch {
+    notice = null;
+  }
 
   return (
     <>

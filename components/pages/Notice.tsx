@@ -1,9 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { FaArrowRight, FaDownload, FaFilePdf, FaImage } from "react-icons/fa";
+import { FaArrowRight, FaDownload, FaFilePdf } from "react-icons/fa";
 import Link from "next/link";
-import MediaImage from "@/components/MediaImage";
 import { getDocuments, getDocumentFileKind, type Document } from "@/utils/supabase/documents";
 import {
   getNoticeDisplayDate,
@@ -42,8 +41,21 @@ const SectionCard = ({
   </div>
 );
 
-const DocumentFileIcon = ({ filePath }: { filePath: string }) => {
+const DocumentFileIcon = ({ filePath, title }: { filePath: string; title: string }) => {
   const kind = getDocumentFileKind(filePath);
+
+  if (kind === "image") {
+    return (
+      <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-lg border border-green-200 bg-white">
+        <img
+          src={getMediaUrl(filePath)}
+          alt={title}
+          loading="lazy"
+          className="h-full w-full object-cover"
+        />
+      </div>
+    );
+  }
 
   if (kind === "pdf") {
     return (
@@ -52,17 +64,6 @@ const DocumentFileIcon = ({ filePath }: { filePath: string }) => {
         aria-hidden="true"
       >
         <FaFilePdf className="h-5 w-5" />
-      </div>
-    );
-  }
-
-  if (kind === "image") {
-    return (
-      <div
-        className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg border border-green-100 bg-green-50 text-green-700"
-        aria-hidden="true"
-      >
-        <FaImage className="h-5 w-5" />
       </div>
     );
   }
@@ -173,12 +174,11 @@ const Notice = ({
                           href={`/notice/${item.slug}`}
                           className="relative block h-20 w-20 shrink-0 overflow-hidden rounded-md border border-gray-200 bg-white sm:h-24 sm:w-24"
                         >
-                          <MediaImage
-                            src={item.image_url}
+                          <img
+                            src={getMediaUrl(item.image_url)}
                             alt={getNoticeImageAlt(item)}
-                            fill
-                            sizes="96px"
-                            className="object-cover"
+                            loading="lazy"
+                            className="h-full w-full object-cover"
                           />
                         </Link>
                         <div className="flex min-w-0 flex-1 flex-col justify-center">
@@ -215,7 +215,10 @@ const Notice = ({
                         className="flex flex-col gap-3 rounded-lg border border-gray-100 p-4 sm:flex-row sm:items-center sm:justify-between"
                       >
                         <div className="flex min-w-0 flex-1 items-center gap-3 sm:pr-4">
-                          <DocumentFileIcon filePath={document.file_path} />
+                          <DocumentFileIcon
+                            filePath={document.file_path}
+                            title={document.title}
+                          />
                           <h3 className="text-sm font-semibold text-gray-800">
                             {document.title}
                           </h3>

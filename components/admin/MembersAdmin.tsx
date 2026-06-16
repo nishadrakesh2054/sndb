@@ -1,7 +1,7 @@
 "use client";
 
-import { FormEvent, useEffect, useState } from "react";
-import { FaPen, FaPlus, FaTrash } from "react-icons/fa";
+import { FormEvent, useEffect, useRef, useState } from "react";
+import { FaPen, FaPlus, FaTimes, FaTrash } from "react-icons/fa";
 import ImageInput, { type ImageInputMode } from "@/components/admin/ImageInput";
 import {
   AdminAlert,
@@ -27,6 +27,7 @@ type Member = {
   position: string;
   phone: number | null;
   email: string | null;
+  sort_order: number;
   created_at: string;
   updated_at: string;
 };
@@ -38,9 +39,17 @@ const emptyForm = {
   position: "",
   phone: "",
   email: "",
+  sort_order: "",
 };
 
+function scrollToMemberForm(formRef: React.RefObject<HTMLDivElement | null>) {
+  requestAnimationFrame(() => {
+    formRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  });
+}
+
 export default function MembersAdmin() {
+  const formRef = useRef<HTMLDivElement>(null);
   const [rows, setRows] = useState<Member[]>([]);
   const [form, setForm] = useState(emptyForm);
   const [editing, setEditing] = useState(false);
@@ -57,7 +66,8 @@ export default function MembersAdmin() {
     const { data, error } = await supabase
       .from("members")
       .select("*")
-      .order("created_at", { ascending: false });
+      .order("sort_order", { ascending: true })
+      .order("title", { ascending: true });
 
     if (error) {
       setMessage({ type: "error", text: error.message });
@@ -80,12 +90,16 @@ export default function MembersAdmin() {
   };
 
   const openAddForm = () => {
-    setForm(emptyForm);
+    setForm({
+      ...emptyForm,
+      sort_order: String(rows.length + 1),
+    });
     setEditing(false);
     setImageMode("upload");
     setImageFile(null);
     setShowForm(true);
     setMessage(null);
+    scrollToMemberForm(formRef);
   };
 
   const openEditForm = (row: Member) => {
@@ -96,12 +110,14 @@ export default function MembersAdmin() {
       position: row.position,
       phone: row.phone != null ? String(row.phone) : "",
       email: row.email ?? "",
+      sort_order: String(row.sort_order ?? 0),
     });
     setEditing(true);
     setImageMode("url");
     setImageFile(null);
     setShowForm(true);
     setMessage(null);
+    scrollToMemberForm(formRef);
   };
 
   const handleSubmit = async (event: FormEvent) => {
@@ -138,6 +154,7 @@ export default function MembersAdmin() {
         position: form.position.trim(),
         phone,
         email: form.email.trim() || null,
+        sort_order: Number(form.sort_order || 0),
         updated_at: now,
       };
 
@@ -184,7 +201,7 @@ export default function MembersAdmin() {
     <div>
       <AdminPageHeader
         title="Life Members"
-        description="Manage life member profiles shown on the member page."
+        description="Manage life member profiles and display order on the member page."
         action={
           !showForm ? (
             <button type="button" onClick={openAddForm} className={btnPrimaryClass}>
@@ -198,76 +215,135 @@ export default function MembersAdmin() {
       {message ? <AdminAlert type={message.type} message={message.text} /> : null}
 
       {showForm ? (
-        <div className="mb-6">
-          <AdminCard title={editing ? "Edit Member" : "Add Member"}>
-            <form onSubmit={handleSubmit} className="space-y-4">
+        <div
+          ref={formRef}
+          id="member-form"
+          className="mb-6 scroll-mt-24"
+        >
+          <div
+            className={[
+              "overflow-hidden rounded-xl border-2 shadow-md transition",
+              editing
+                ? "border-green-500 bg-green-50/40"
+                : "border-green-400 bg-white",
+            ].join(" ")}
+          >
+            <div
+              className={[
+                "flex items-center justify-between gap-3 border-b px-5 py-3",
+                editing ? "border-green-200 bg-green-100/80" : "border-green-100 bg-[#e4f7ef]",
+              ].join(" ")}
+            >
               <div>
-                <label className={labelClass}>Name</label>
-                <input
-                  required
-                  value={form.title}
-                  onChange={(event) => setForm({ ...form, title: event.target.value })}
-                  placeholder="Dr. John Doe"
-                  className={inputClass}
-                />
+                <p className="text-xs font-semibold uppercase tracking-wider text-green-800">
+                  {editing ? "Editing member" : "Add new member"}
+                </p>
+                {editing ? (
+                  <p className="mt-0.5 text-sm font-semibold text-gray-900">{form.title}</p>
+                ) : (
+                  <p className="mt-0.5 text-sm text-gray-600">
+                    Fill in the details below, then save.
+                  </p>
+                )}
               </div>
+              <button
+                type="button"
+                onClick={resetForm}
+                className="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 transition hover:bg-gray-50"
+              >
+                <FaTimes className="h-3 w-3" />
+                Close form
+              </button>
+            </div>
 
-              <div>
-                <label className={labelClass}>Position</label>
-                <input
-                  required
-                  value={form.position}
-                  onChange={(event) => setForm({ ...form, position: event.target.value })}
-                  placeholder="President"
-                  className={inputClass}
-                />
-              </div>
+            <div className="p-5 sm:p-6">
+              <form onSubmit={handleSubmit} className="space-y-4">
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div>
+                    <label className={labelClass}>Name</label>
+                    <input
+                      required
+                      value={form.title}
+                      onChange={(event) => setForm({ ...form, title: event.target.value })}
+                      placeholder="Dr. John Doe"
+                      className={inputClass}
+                    />
+                  </div>
+                  <div>
+                    <label className={labelClass}>Position</label>
+                    <input
+                      required
+                      value={form.position}
+                      onChange={(event) =>
+                        setForm({ ...form, position: event.target.value })
+                      }
+                      placeholder="President"
+                      className={inputClass}
+                    />
+                  </div>
+                </div>
 
-              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="grid gap-4 sm:grid-cols-3">
+                  <div>
+                    <label className={labelClass}>Display order</label>
+                    <input
+                      type="number"
+                      min={0}
+                      value={form.sort_order}
+                      onChange={(event) =>
+                        setForm({ ...form, sort_order: event.target.value })
+                      }
+                      className={inputClass}
+                    />
+                    <p className="mt-1 text-xs text-gray-500">
+                      Lower numbers appear first on the website.
+                    </p>
+                  </div>
+                  <div>
+                    <label className={labelClass}>Phone</label>
+                    <input
+                      value={form.phone}
+                      onChange={(event) => setForm({ ...form, phone: event.target.value })}
+                      placeholder="9800000000"
+                      className={inputClass}
+                    />
+                  </div>
+                  <div>
+                    <label className={labelClass}>Email</label>
+                    <input
+                      type="email"
+                      value={form.email}
+                      onChange={(event) => setForm({ ...form, email: event.target.value })}
+                      placeholder="name@example.com"
+                      className={inputClass}
+                    />
+                  </div>
+                </div>
+
                 <div>
-                  <label className={labelClass}>Phone</label>
-                  <input
-                    value={form.phone}
-                    onChange={(event) => setForm({ ...form, phone: event.target.value })}
-                    placeholder="9800000000"
-                    className={inputClass}
+                  <label className={labelClass}>Photo</label>
+                  <ImageInput
+                    mode={imageMode}
+                    onModeChange={setImageMode}
+                    urlValue={form.image}
+                    onUrlChange={(value) => setForm({ ...form, image: value })}
+                    file={imageFile}
+                    onFileChange={setImageFile}
+                    existingPath={editing ? form.image : ""}
                   />
                 </div>
-                <div>
-                  <label className={labelClass}>Email</label>
-                  <input
-                    type="email"
-                    value={form.email}
-                    onChange={(event) => setForm({ ...form, email: event.target.value })}
-                    placeholder="name@example.com"
-                    className={inputClass}
-                  />
+
+                <div className="flex gap-2 border-t border-gray-100 pt-4">
+                  <button type="submit" disabled={saving} className={btnPrimaryClass}>
+                    {saving ? "Saving..." : editing ? "Update Member" : "Add Member"}
+                  </button>
+                  <button type="button" onClick={resetForm} className={btnSecondaryClass}>
+                    Cancel
+                  </button>
                 </div>
-              </div>
-
-              <div>
-                <label className={labelClass}>Photo</label>
-                <ImageInput
-                  mode={imageMode}
-                  onModeChange={setImageMode}
-                  urlValue={form.image}
-                  onUrlChange={(value) => setForm({ ...form, image: value })}
-                  file={imageFile}
-                  onFileChange={setImageFile}
-                  existingPath={editing ? form.image : ""}
-                />
-              </div>
-
-              <div className="flex gap-2">
-                <button type="submit" disabled={saving} className={btnPrimaryClass}>
-                  {saving ? "Saving..." : editing ? "Update Member" : "Add Member"}
-                </button>
-                <button type="button" onClick={resetForm} className={btnSecondaryClass}>
-                  Cancel
-                </button>
-              </div>
-            </form>
-          </AdminCard>
+              </form>
+            </div>
+          </div>
         </div>
       ) : null}
 
@@ -284,51 +360,77 @@ export default function MembersAdmin() {
           </div>
         ) : (
           <ul className="divide-y divide-gray-100">
-            {rows.map((row) => (
-              <li
-                key={row.id}
-                className="flex flex-col gap-4 py-4 first:pt-0 last:pb-0 sm:flex-row sm:items-center"
-              >
-                <div className="h-16 w-16 shrink-0 overflow-hidden rounded-full border border-gray-200 bg-gray-50">
-                  <img
-                    src={getMediaUrl(row.image)}
-                    alt={row.title}
-                    className="h-full w-full object-cover object-top"
-                  />
-                </div>
+            {rows.map((row) => {
+              const isEditingRow = editing && form.id === row.id;
 
-                <div className="min-w-0 flex-1">
-                  <p className="font-semibold text-gray-900">{row.title}</p>
-                  <p className="text-sm text-gray-600">{row.position}</p>
-                  {row.phone || row.email ? (
-                    <p className="mt-1 text-xs text-gray-500">
-                      {[row.phone, row.email].filter(Boolean).join(" · ")}
-                    </p>
-                  ) : null}
-                </div>
+              return (
+                <li
+                  key={row.id}
+                  id={`member-row-${row.id}`}
+                  className={[
+                    "flex flex-col gap-4 py-4 first:pt-0 last:pb-0 sm:flex-row sm:items-center sm:rounded-lg sm:px-2 sm:transition",
+                    isEditingRow
+                      ? "bg-green-50 ring-2 ring-green-400 ring-inset"
+                      : "hover:bg-gray-50/80",
+                  ].join(" ")}
+                >
+                  <div className="flex w-10 shrink-0 items-center justify-center">
+                    <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-gray-100 text-sm font-bold text-gray-700">
+                      {row.sort_order}
+                    </span>
+                  </div>
 
-                <div className="flex shrink-0 gap-2">
-                  <button
-                    type="button"
-                    aria-label={`Edit ${row.title}`}
-                    title="Edit member"
-                    className={btnIconClass}
-                    onClick={() => openEditForm(row)}
-                  >
-                    <FaPen className="h-3.5 w-3.5" />
-                  </button>
-                  <button
-                    type="button"
-                    aria-label={`Delete ${row.title}`}
-                    title="Delete member"
-                    className={btnIconDangerClass}
-                    onClick={() => handleDelete(row.id)}
-                  >
-                    <FaTrash className="h-3.5 w-3.5" />
-                  </button>
-                </div>
-              </li>
-            ))}
+                  <div className="h-16 w-16 shrink-0 overflow-hidden rounded-full border border-gray-200 bg-gray-50">
+                    <img
+                      src={getMediaUrl(row.image)}
+                      alt={row.title}
+                      className="h-full w-full object-cover object-top"
+                    />
+                  </div>
+
+                  <div className="min-w-0 flex-1">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <p className="font-semibold text-gray-900">{row.title}</p>
+                      {isEditingRow ? (
+                        <span className="rounded-full bg-green-600 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-white">
+                          Editing
+                        </span>
+                      ) : null}
+                    </div>
+                    <p className="text-sm text-gray-600">{row.position}</p>
+                    {row.phone || row.email ? (
+                      <p className="mt-1 text-xs text-gray-500">
+                        {[row.phone, row.email].filter(Boolean).join(" · ")}
+                      </p>
+                    ) : null}
+                  </div>
+
+                  <div className="flex shrink-0 gap-2">
+                    <button
+                      type="button"
+                      aria-label={`Edit ${row.title}`}
+                      title="Edit member"
+                      className={[
+                        btnIconClass,
+                        isEditingRow ? "border-green-500 bg-green-100 text-green-800" : "",
+                      ].join(" ")}
+                      onClick={() => openEditForm(row)}
+                    >
+                      <FaPen className="h-3.5 w-3.5" />
+                    </button>
+                    <button
+                      type="button"
+                      aria-label={`Delete ${row.title}`}
+                      title="Delete member"
+                      className={btnIconDangerClass}
+                      onClick={() => handleDelete(row.id)}
+                    >
+                      <FaTrash className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                </li>
+              );
+            })}
           </ul>
         )}
       </AdminCard>
