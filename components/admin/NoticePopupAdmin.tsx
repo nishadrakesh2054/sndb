@@ -15,6 +15,7 @@ import {
   btnSecondaryClass,
   labelClass,
 } from "@/lib/admin/config";
+import { revalidateNoticeContent } from "@/lib/admin/revalidateSite";
 import { getMediaUrl } from "@/lib/mediaUrl";
 import { uploadSiteMedia } from "@/utils/supabase/mediaUpload";
 import { createClient } from "@/utils/supabase/client";
@@ -114,6 +115,8 @@ export default function NoticePopupAdmin() {
         throw error;
       }
 
+      await revalidateNoticeContent();
+
       setMessage({ type: "success", text: editing ? "Popup updated." : "Popup created." });
       resetForm();
       load();
@@ -137,6 +140,8 @@ export default function NoticePopupAdmin() {
       setMessage({ type: "error", text: error.message });
       return;
     }
+
+    await revalidateNoticeContent();
 
     setMessage({ type: "success", text: "Popup deleted." });
     if (form.id === id) {

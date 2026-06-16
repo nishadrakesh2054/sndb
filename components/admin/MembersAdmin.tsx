@@ -18,6 +18,7 @@ import {
 } from "@/lib/admin/config";
 import { getMediaUrl } from "@/lib/mediaUrl";
 import { uploadSiteMedia } from "@/utils/supabase/mediaUpload";
+import { revalidateMemberContent } from "@/lib/admin/revalidateSite";
 import { createClient } from "@/utils/supabase/client";
 
 type Member = {
@@ -166,6 +167,8 @@ export default function MembersAdmin() {
         throw error;
       }
 
+      await revalidateMemberContent();
+
       setMessage({ type: "success", text: editing ? "Member updated." : "Member added." });
       resetForm();
       load();
@@ -189,6 +192,8 @@ export default function MembersAdmin() {
       setMessage({ type: "error", text: error.message });
       return;
     }
+
+    await revalidateMemberContent();
 
     setMessage({ type: "success", text: "Member deleted." });
     if (form.id === id) {

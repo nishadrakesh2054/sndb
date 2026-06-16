@@ -37,14 +37,9 @@ const Gallery = ({ initialImages = [] }: { initialImages?: GalleryImage[] }) => 
   const [currentPage, setCurrentPage] = useState(0);
 
   useEffect(() => {
-    if (initialImages.length > 0) {
-      return;
-    }
-
     let cancelled = false;
 
     const loadGallery = async () => {
-      setLoading(true);
       setError(null);
 
       try {
@@ -65,12 +60,16 @@ const Gallery = ({ initialImages = [] }: { initialImages?: GalleryImage[] }) => 
       }
     };
 
+    if (initialImages.length === 0) {
+      setLoading(true);
+    }
+
     loadGallery();
 
     return () => {
       cancelled = true;
     };
-  }, [initialImages.length]);
+  }, []);
 
   const allImages: DisplayImage[] = useMemo(
     () =>

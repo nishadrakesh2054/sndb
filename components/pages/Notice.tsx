@@ -93,14 +93,9 @@ const Notice = ({
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (initialNotices.length > 0 || initialDocuments.length > 0) {
-      return;
-    }
-
     let cancelled = false;
 
     const loadData = async () => {
-      setLoading(true);
       setError(null);
       try {
         const [noticeData, documentData] = await Promise.all([
@@ -124,12 +119,16 @@ const Notice = ({
       }
     };
 
+    if (initialNotices.length === 0 && initialDocuments.length === 0) {
+      setLoading(true);
+    }
+
     loadData();
 
     return () => {
       cancelled = true;
     };
-  }, [initialNotices.length, initialDocuments.length]);
+  }, []);
 
   return (
     <>

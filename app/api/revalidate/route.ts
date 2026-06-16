@@ -12,17 +12,45 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  let path = "/";
+  let paths = ["/"];
+  let refreshLayout = true;
+
   try {
     const body = await request.json();
-    if (typeof body.path === "string" && body.path.startsWith("/")) {
-      path = body.path;
+
+    if (Array.isArray(body.paths)) {
+      paths = body.paths.filter(
+        (path: unknown): path is string =>
+          typeof path === "string" && path.startsWith("/")
+      );
+    } else if (typeof body.path === "string" && body.path.startsWith("/")) {
+      paths = [body.path];
+    }
+
+    if (body.layout === false) {
+      refreshLayout = false;
     }
   } catch {
-    // Default to homepage.
+    // Use defaults.
   }
 
-  revalidatePath(path);
+  if (paths.length === 0) {
+    paths = ["/"];
+  }
 
-  return NextResponse.json({ revalidated: true, path });
+  const uniquePaths = [...new Set(paths)];
+
+  for (const path of uniquePaths) {
+    revalidatePath(path);
+  }
+
+  if (refreshLayout) {
+    revalidatePath("/", "layout");
+  }
+
+  return NextResponse.json({
+    revalidated: true,
+    paths: uniquePaths,
+    layout: refreshLayout,
+  });
 }

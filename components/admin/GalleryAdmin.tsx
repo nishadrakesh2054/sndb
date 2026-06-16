@@ -15,6 +15,7 @@ import {
   btnSecondaryClass,
 } from "@/lib/admin/config";
 import { getMediaUrl } from "@/lib/mediaUrl";
+import { revalidateGalleryContent } from "@/lib/admin/revalidateSite";
 import { uploadSiteMedia } from "@/utils/supabase/mediaUpload";
 import { createClient } from "@/utils/supabase/client";
 
@@ -121,6 +122,7 @@ export default function GalleryAdmin() {
             ? "Image uploaded."
             : `${selectedFiles.length} images uploaded.`,
       });
+      await revalidateGalleryContent();
       resetForm();
       load();
     } catch (err) {
@@ -164,6 +166,7 @@ export default function GalleryAdmin() {
       }
 
       setMessage({ type: "success", text: "Image updated." });
+      await revalidateGalleryContent();
       resetForm();
       load();
     } catch (err) {
@@ -186,6 +189,8 @@ export default function GalleryAdmin() {
       setMessage({ type: "error", text: error.message });
       return;
     }
+
+    await revalidateGalleryContent();
 
     setMessage({ type: "success", text: "Image deleted." });
     if (editingId === id) {

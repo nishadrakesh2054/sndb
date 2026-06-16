@@ -80,14 +80,9 @@ const PastEXComm: React.FC<{
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (initialCategories.length > 0) {
-      return;
-    }
-
     let cancelled = false;
 
     const loadCommittee = async () => {
-      setLoading(true);
       setError(null);
 
       try {
@@ -110,12 +105,16 @@ const PastEXComm: React.FC<{
       }
     };
 
+    if (initialCategories.length === 0) {
+      setLoading(true);
+    }
+
     loadCommittee();
 
     return () => {
       cancelled = true;
     };
-  }, [initialCategories.length]);
+  }, []);
 
   const renderMembers = (members: CommitteeMember[], compact = false) => {
     const gridClass = compact

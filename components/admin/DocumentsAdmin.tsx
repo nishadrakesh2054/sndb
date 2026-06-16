@@ -16,6 +16,7 @@ import {
   inputClass,
   labelClass,
 } from "@/lib/admin/config";
+import { revalidateNoticeContent } from "@/lib/admin/revalidateSite";
 import { getMediaUrl } from "@/lib/mediaUrl";
 import { uploadSiteDocument } from "@/utils/supabase/mediaUpload";
 import { createClient } from "@/utils/supabase/client";
@@ -123,6 +124,8 @@ export default function DocumentsAdmin() {
         throw error;
       }
 
+      await revalidateNoticeContent();
+
       setMessage({
         type: "success",
         text: editing ? "Document updated." : "Document added.",
@@ -149,6 +152,8 @@ export default function DocumentsAdmin() {
       setMessage({ type: "error", text: error.message });
       return;
     }
+
+    await revalidateNoticeContent();
 
     setMessage({ type: "success", text: "Document deleted." });
     if (form.id === id) {

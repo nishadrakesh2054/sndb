@@ -19,6 +19,7 @@ import {
 } from "@/lib/admin/config";
 import { getMediaUrl } from "@/lib/mediaUrl";
 import { uploadSiteMedia } from "@/utils/supabase/mediaUpload";
+import { revalidateNoticeContent } from "@/lib/admin/revalidateSite";
 import { createClient } from "@/utils/supabase/client";
 
 type Notice = {
@@ -232,6 +233,8 @@ export default function NoticesAdmin() {
         throw error;
       }
 
+      await revalidateNoticeContent(slug);
+
       setMessage({ type: "success", text: editing ? "Notice updated." : "Notice added." });
       resetForm();
       load();
@@ -248,6 +251,7 @@ export default function NoticesAdmin() {
   const handleDelete = async (id: string) => {
     if (!confirm("Delete this notice?")) return;
 
+    const deleted = rows.find((row) => row.id === id);
     const supabase = createClient();
     const { error } = await supabase.from("notices").delete().eq("id", id);
 
@@ -255,6 +259,8 @@ export default function NoticesAdmin() {
       setMessage({ type: "error", text: error.message });
       return;
     }
+
+    await revalidateNoticeContent(deleted?.slug);
 
     setMessage({ type: "success", text: "Notice deleted." });
     if (form.id === id) {

@@ -18,6 +18,7 @@ import {
   slugify,
 } from "@/lib/admin/config";
 import { getMediaUrl } from "@/lib/mediaUrl";
+import { revalidateCommitteeContent } from "@/lib/admin/revalidateSite";
 import { uploadSiteMedia } from "@/utils/supabase/mediaUpload";
 import { createClient } from "@/utils/supabase/client";
 
@@ -279,6 +280,8 @@ export default function CommitteeAdmin() {
 
       if (error) throw error;
 
+      await revalidateCommitteeContent();
+
       setMessage({
         type: "success",
         text: editingCategory ? "Section updated." : "Section added.",
@@ -339,6 +342,8 @@ export default function CommitteeAdmin() {
 
       if (error) throw error;
 
+      await revalidateCommitteeContent();
+
       setMessage({
         type: "success",
         text: editingMember ? "Member updated." : "Member added.",
@@ -366,6 +371,8 @@ export default function CommitteeAdmin() {
       return;
     }
 
+    await revalidateCommitteeContent();
+
     setMessage({ type: "success", text: "Section deleted." });
     if (categoryForm.id === id) resetCategoryForm();
     load();
@@ -381,6 +388,8 @@ export default function CommitteeAdmin() {
       setMessage({ type: "error", text: error.message });
       return;
     }
+
+    await revalidateCommitteeContent();
 
     setMessage({ type: "success", text: "Member deleted." });
     if (memberForm.id === id) resetMemberForm();

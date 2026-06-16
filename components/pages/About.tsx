@@ -43,10 +43,6 @@ const StatsSection = ({ initialStats }: { initialStats?: SiteStats }) => {
   );
 
   useEffect(() => {
-    if (initialStats) {
-      return;
-    }
-
     const loadStats = async () => {
       try {
         const { getMemberCount } = await import("@/utils/supabase/members");
@@ -70,7 +66,7 @@ const StatsSection = ({ initialStats }: { initialStats?: SiteStats }) => {
     };
 
     loadStats();
-  }, [initialStats]);
+  }, []);
 
   return (
     <section className="border-t border-gray-200 bg-white py-10 md:py-14">
@@ -107,15 +103,9 @@ const FaqSection = ({ initialFaqs = [] }: { initialFaqs?: Faq[] }) => {
   const [openId, setOpenId] = useState<string | null>(initialFaqs[0]?.id ?? null);
 
   useEffect(() => {
-    if (initialFaqs.length > 0) {
-      return;
-    }
-
     let cancelled = false;
 
     const loadFaqs = async () => {
-      setLoading(true);
-
       try {
         const data = await getActiveFaqs();
         if (!cancelled) {
@@ -133,12 +123,16 @@ const FaqSection = ({ initialFaqs = [] }: { initialFaqs?: Faq[] }) => {
       }
     };
 
+    if (initialFaqs.length === 0) {
+      setLoading(true);
+    }
+
     loadFaqs();
 
     return () => {
       cancelled = true;
     };
-  }, [initialFaqs.length]);
+  }, []);
 
   return (
     <section className="border-t border-green-200/60 bg-[#e4f7ef] py-12 md:py-16">
@@ -219,7 +213,7 @@ const FaqSection = ({ initialFaqs = [] }: { initialFaqs?: Faq[] }) => {
   );
 };
 
-const aboutimg = "/about.jpg";
+const aboutimg = "/about.png";
 
 const About: React.FC<{
   showStats?: boolean;

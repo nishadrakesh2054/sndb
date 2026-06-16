@@ -32,14 +32,9 @@ const NoticeDetails = ({
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (initialNotice) {
-      return;
-    }
-
     let cancelled = false;
 
     const loadNotice = async () => {
-      setLoading(true);
       setError(null);
 
       try {
@@ -60,12 +55,16 @@ const NoticeDetails = ({
       }
     };
 
+    if (!initialNotice) {
+      setLoading(true);
+    }
+
     loadNotice();
 
     return () => {
       cancelled = true;
     };
-  }, [slug, initialNotice]);
+  }, [slug]);
 
   if (loading) {
     return (

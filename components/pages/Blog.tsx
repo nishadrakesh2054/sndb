@@ -55,18 +55,9 @@ const Blog = ({
   const pageCount = Math.ceil(totalPosts / BLOG_PAGE_SIZE);
 
   useEffect(() => {
-    if (isHomeSection && initialPosts.length > 0) {
-      return;
-    }
-
-    if (!isHomeSection && currentPage === 1 && initialPosts.length > 0) {
-      return;
-    }
-
     let cancelled = false;
 
     const loadBlogs = async () => {
-      setLoading(true);
       setError(null);
 
       try {
@@ -93,12 +84,19 @@ const Blog = ({
       }
     };
 
+    const hasInitialData =
+      isHomeSection || currentPage === 1 ? initialPosts.length > 0 : false;
+
+    if (!hasInitialData) {
+      setLoading(true);
+    }
+
     loadBlogs();
 
     return () => {
       cancelled = true;
     };
-  }, [isHomeSection, currentPage, initialPosts.length]);
+  }, [isHomeSection, currentPage]);
 
   const sectionClassName = isHomeSection
     ? "relative overflow-hidden border-t border-green-200/60 bg-[#e4f7ef] py-12 md:py-16"

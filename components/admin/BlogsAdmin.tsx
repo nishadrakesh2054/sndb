@@ -19,6 +19,7 @@ import {
 } from "@/lib/admin/config";
 import { getMediaUrl } from "@/lib/mediaUrl";
 import { uploadSiteMedia } from "@/utils/supabase/mediaUpload";
+import { revalidateBlogContent } from "@/lib/admin/revalidateSite";
 import { createClient } from "@/utils/supabase/client";
 
 type BlogCategory = { id: string; name: string; slug: string };
@@ -269,6 +270,8 @@ export default function BlogsAdmin() {
 
       if (error) throw error;
 
+      await revalidateBlogContent(slug);
+
       setMessage({ type: "success", text: editingBlog ? "Blog updated." : "Blog added." });
       resetBlogForm();
       load();
@@ -285,6 +288,7 @@ export default function BlogsAdmin() {
   const handleDeleteBlog = async (id: string) => {
     if (!confirm("Delete this blog?")) return;
 
+    const deleted = blogs.find((b) => b.id === id);
     const supabase = createClient();
     const { error } = await supabase.from("blogs").delete().eq("id", id);
 
@@ -292,6 +296,8 @@ export default function BlogsAdmin() {
       setMessage({ type: "error", text: error.message });
       return;
     }
+
+    await revalidateBlogContent(deleted?.slug);
 
     setMessage({ type: "success", text: "Blog deleted." });
     if (blogForm.id === id) resetBlogForm();
@@ -315,6 +321,8 @@ export default function BlogsAdmin() {
       const { error } = await supabase.from("blog_categories").insert({ name, slug });
 
       if (error) throw error;
+
+      await revalidateBlogContent();
 
       setCategoryForm(emptyCategoryForm);
       setShowCategoryForm(false);
@@ -340,6 +348,8 @@ export default function BlogsAdmin() {
       setMessage({ type: "error", text: error.message });
       return;
     }
+
+    await revalidateBlogContent();
 
     setMessage({ type: "success", text: "Category deleted." });
     load();

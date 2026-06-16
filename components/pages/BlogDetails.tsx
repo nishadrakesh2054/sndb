@@ -29,14 +29,9 @@ const BlogDetails = ({
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (initialBlog) {
-      return;
-    }
-
     let cancelled = false;
 
     const loadBlog = async () => {
-      setLoading(true);
       setError(null);
 
       try {
@@ -57,12 +52,16 @@ const BlogDetails = ({
       }
     };
 
+    if (!initialBlog) {
+      setLoading(true);
+    }
+
     loadBlog();
 
     return () => {
       cancelled = true;
     };
-  }, [slug, initialBlog]);
+  }, [slug]);
 
   return (
     <PageSection>

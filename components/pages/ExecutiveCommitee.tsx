@@ -245,14 +245,9 @@ const ExecutiveCommittee: React.FC<{
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
   useEffect(() => {
-    if (initialCategories.length > 0) {
-      return;
-    }
-
     let cancelled = false;
 
     const loadCommittee = async () => {
-      setLoading(true);
       setError(null);
 
       try {
@@ -275,12 +270,16 @@ const ExecutiveCommittee: React.FC<{
       }
     };
 
+    if (initialCategories.length === 0) {
+      setLoading(true);
+    }
+
     loadCommittee();
 
     return () => {
       cancelled = true;
     };
-  }, [initialCategories.length]);
+  }, []);
 
   const toggleCard = (id: string) => {
     setExpandedId((current) => (current === id ? null : id));

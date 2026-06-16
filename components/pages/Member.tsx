@@ -131,14 +131,9 @@ const Member: React.FC<{ initialMembers?: Member[] }> = ({
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (initialMembers.length > 0) {
-      return;
-    }
-
     let cancelled = false;
 
     const loadMembers = async () => {
-      setLoading(true);
       setError(null);
 
       try {
@@ -159,12 +154,16 @@ const Member: React.FC<{ initialMembers?: Member[] }> = ({
       }
     };
 
+    if (initialMembers.length === 0) {
+      setLoading(true);
+    }
+
     loadMembers();
 
     return () => {
       cancelled = true;
     };
-  }, [initialMembers.length]);
+  }, []);
 
   return (
     <>

@@ -15,6 +15,7 @@ import {
   inputClass,
   labelClass,
 } from "@/lib/admin/config";
+import { revalidateAboutContent } from "@/lib/admin/revalidateSite";
 import { createClient } from "@/utils/supabase/client";
 
 type FaqRow = {
@@ -112,6 +113,8 @@ export default function FaqsAdmin() {
 
       if (error) throw error;
 
+      await revalidateAboutContent();
+
       setMessage({ type: "success", text: editing ? "FAQ updated." : "FAQ added." });
       resetForm();
       load();
@@ -135,6 +138,8 @@ export default function FaqsAdmin() {
       setMessage({ type: "error", text: error.message });
       return;
     }
+
+    await revalidateAboutContent();
 
     setMessage({ type: "success", text: "FAQ deleted." });
     if (form.id === id) resetForm();

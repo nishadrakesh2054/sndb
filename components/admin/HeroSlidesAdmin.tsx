@@ -18,6 +18,7 @@ import {
 } from "@/lib/admin/config";
 import { getMediaUrl } from "@/lib/mediaUrl";
 import { uploadSiteMedia } from "@/utils/supabase/mediaUpload";
+import { revalidateHeroContent } from "@/lib/admin/revalidateSite";
 import { createClient } from "@/utils/supabase/client";
 
 type HeroSlide = {
@@ -35,18 +36,6 @@ const emptyForm = {
   image: "",
   sort_order: "",
 };
-
-async function revalidateHomepage() {
-  try {
-    await fetch("/api/revalidate", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ path: "/" }),
-    });
-  } catch {
-    // Homepage still refreshes via client fetch in Hero.
-  }
-}
 
 function nextSortOrder(rows: HeroSlide[]): number {
   if (rows.length === 0) return 1;
@@ -178,7 +167,7 @@ export default function HeroSlidesAdmin() {
         throw error;
       }
 
-      await revalidateHomepage();
+      await revalidateHeroContent();
       setMessage({ type: "success", text: editing ? "Slide updated." : "Slide created." });
       resetForm();
       load();
@@ -215,7 +204,7 @@ export default function HeroSlidesAdmin() {
       return;
     }
 
-    await revalidateHomepage();
+    await revalidateHeroContent();
     setMessage({ type: "success", text: "Slide deleted." });
     if (form.id === id) {
       resetForm();
