@@ -8,6 +8,7 @@ import {
   getPublishedGalleryImages,
   type GalleryImage,
 } from "@/utils/supabase/gallery";
+import MediaImage from "@/components/MediaImage";
 import { getMediaUrl } from "@/lib/mediaUrl";
 import {
   PageContainer,
@@ -23,7 +24,7 @@ const IMAGES_PER_PAGE = 6;
 
 type DisplayImage = {
   id: string;
-  src: string;
+  storagePath: string;
   alt: string;
 };
 
@@ -75,7 +76,7 @@ const Gallery = ({ initialImages = [] }: { initialImages?: GalleryImage[] }) => 
     () =>
       images.map((image, index) => ({
         id: image.id,
-        src: getMediaUrl(image.image_url),
+        storagePath: image.image_url,
         alt: getGalleryImageAlt(image, index),
       })),
     [images]
@@ -94,7 +95,7 @@ const Gallery = ({ initialImages = [] }: { initialImages?: GalleryImage[] }) => 
   };
 
   const lightboxSlides = allImages.map((img) => ({
-    src: img.src,
+    src: getMediaUrl(img.storagePath),
     alt: img.alt,
   }));
 
@@ -151,11 +152,12 @@ const Gallery = ({ initialImages = [] }: { initialImages?: GalleryImage[] }) => 
                     className="group relative aspect-[4/3] overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm transition hover:shadow-md"
                     aria-label={`View ${item.alt}`}
                   >
-                    <img
-                      src={item.src}
+                    <MediaImage
+                      src={item.storagePath}
                       alt={item.alt}
-                      loading="lazy"
-                      className="h-full w-full object-cover transition duration-300 group-hover:scale-105"
+                      fill
+                      sizes="(max-width: 768px) 100vw, 33vw"
+                      className="object-cover transition duration-300 group-hover:scale-105"
                     />
                     <div className="absolute inset-0 flex items-center justify-center bg-black/0 transition duration-300 group-hover:bg-black/30">
                       <span className="flex h-11 w-11 items-center justify-center rounded-full bg-white/95 text-green-700 opacity-0 shadow-md transition duration-300 group-hover:opacity-100">

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { getAllMembers, type Member } from "@/utils/supabase/members";
-import { getMediaUrl } from "@/lib/mediaUrl";
+import MediaImage from "@/components/MediaImage";
 import {
   PageContainer,
   PageHeader,
@@ -54,10 +54,12 @@ const MemberCard: React.FC<{ member: Member; index: number }> = ({
         />
 
         <div className="relative z-10 mx-auto h-28 w-28 overflow-hidden rounded-full border-[3px] border-white bg-gray-50 shadow-md ring-2 ring-green-600/20 transition group-hover:ring-green-600/40 sm:h-32 sm:w-32">
-          <img
-            src={getMediaUrl(member.image)}
-            loading="lazy"
+          <MediaImage
+            src={member.image}
             alt={member.title}
+            width={128}
+            height={128}
+            sizes="128px"
             className="h-full w-full object-cover object-top"
           />
         </div>
