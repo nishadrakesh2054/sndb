@@ -215,6 +215,50 @@ const FaqSection = ({ initialFaqs = [] }: { initialFaqs?: Faq[] }) => {
 
 const aboutimg = "/about.png";
 
+const AboutImageVisual = ({ priority = false }: { priority?: boolean }) => (
+  <div className="relative isolate w-full max-w-full">
+    <div
+      className="pointer-events-none absolute right-0 top-0 z-0 h-[92%] w-[86%] rounded-2xl bg-gradient-to-br from-green-700 to-green-600 shadow-lg"
+      aria-hidden="true"
+    />
+    <div
+      className="pointer-events-none absolute bottom-0 left-0 z-0 h-[76%] w-[72%] rounded-2xl border-2 border-green-600/25 bg-[#e4f7ef]"
+      aria-hidden="true"
+    />
+
+    <div
+      className="pointer-events-none absolute right-3 top-6 z-20 h-12 w-12 rounded-full border-[3px] border-white bg-green-600 shadow-md md:h-14 md:w-14"
+      aria-hidden="true"
+    />
+    <div
+      className="pointer-events-none absolute bottom-10 left-3 z-20 h-8 w-8 rotate-45 rounded-sm bg-green-600/90 shadow-sm md:h-10 md:w-10"
+      aria-hidden="true"
+    />
+    <div
+      className="pointer-events-none absolute right-[20%] top-2 z-20 h-3 w-3 rounded-full bg-green-800/70"
+      aria-hidden="true"
+    />
+    <div
+      className="pointer-events-none absolute bottom-5 left-[20%] z-20 hidden h-16 w-16 rounded-full border-2 border-dashed border-green-600/40 md:block"
+      aria-hidden="true"
+    />
+
+    <div className="relative z-10 w-full overflow-hidden rounded-2xl bg-white shadow-[0_18px_48px_-20px_rgba(22,101,52,0.55)]">
+      <div className="absolute inset-x-0 top-0 h-1.5 bg-gradient-to-r from-green-800 via-green-600 to-green-700" />
+      <MediaImage
+        src={aboutimg}
+        alt="Society of Nepal Doctors from Bangladesh"
+        width={1800}
+        height={900}
+        priority={priority}
+        sizes="(max-width: 768px) 100vw, 50vw"
+        className="block h-auto w-full object-contain"
+      />
+      <div className="absolute inset-x-0 bottom-0 h-12 bg-gradient-to-t from-green-900/10 to-transparent" />
+    </div>
+  </div>
+);
+
 const About: React.FC<{
   showStats?: boolean;
   showFaq?: boolean;
@@ -225,8 +269,8 @@ const About: React.FC<{
   return (
     <>
       <PageSection>
-        <PageContainer className="grid items-center gap-10 lg:grid-cols-2 lg:gap-12">
-          <div className="order-2 lg:order-1">
+        <PageContainer className="grid grid-cols-1 items-center gap-8 md:grid-cols-12 md:gap-10 lg:gap-12">
+          <div className="min-w-0 md:col-span-6">
             <PageHeader
               label="About Us"
               align="left"
@@ -243,46 +287,24 @@ const About: React.FC<{
 
             <div className="space-y-6 text-justify leading-relaxed text-gray-600">
               <p>
-                Society for Nepalese Doctors from Bangladesh (SNDB) is the
-                non-political, non-profit organization for Nepalese doctors
-                who have accomplished either MBBS/BDS or MD/MS or both degrees
-                from Bangladesh, currently practicing in Nepal or abroad. It is
-                our pleasure to inform you that there are thousands of doctors who
-                have graduated from Bangladesh and many of them are holding major
-                positions in most of the prestigious and reputed
-                institutions and hospitals across Nepal.
+              Society for Nepalese Doctors from Bangladesh (SNDB) is a non-political, non-profit organization representing Nepalese doctors who completed their medical education in Bangladesh and are currently practicing in Nepal and around the world.
               </p>
               <p>
-                SNDB strives to create a platform for continuous professional
-                growth, networking, and collaboration among its members. We aim to
-                promote the exchange of knowledge, support career development, and
-                foster a sense of unity among doctors who share common academic
-                roots in Bangladesh. Our goal is to contribute to the enhancement
-                of healthcare services in Nepal through shared expertise and
-                collective efforts.
+              SNDB promotes professional growth, networking, and collaboration among its members while fostering knowledge exchange, career development, and unity. Through shared expertise and collective efforts, we strive to contribute to the advancement of healthcare services in Nepal.
               </p>
             </div>
 
             <Link
-              href="/contact"
+              href="/about"
               className="group mt-10 inline-flex items-center gap-2 rounded-full bg-green-600 px-6 py-2.5 text-sm font-semibold text-white shadow-sm transition-all hover:bg-green-700 hover:shadow-md"
             >
-              Contact Us
+              Read More
               <FaArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
             </Link>
           </div>
 
-          <div className="order-1 lg:order-2">
-            <div className="overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm">
-              <MediaImage
-                src={aboutimg}
-                alt="Society of Nepal Doctors from Bangladesh"
-                width={800}
-                height={600}
-                sizes="(max-width: 1024px) 100vw, 50vw"
-                className="aspect-[4/3] w-full object-cover"
-              />
-            </div>
+          <div className="min-w-0 w-full md:col-span-6">
+            <AboutImageVisual priority={standalone} />
           </div>
         </PageContainer>
       </PageSection>
