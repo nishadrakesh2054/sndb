@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { createPublicServerClient } from "@/utils/supabase/public.server";
 import {
   blogSelect,
@@ -16,7 +17,7 @@ function normalizeBlog(row: BlogRow): BlogPost {
   return { ...row, category };
 }
 
-export async function getBlogBySlugServer(slug: string): Promise<BlogPost | null> {
+export const getBlogBySlugServer = cache(async (slug: string): Promise<BlogPost | null> => {
   const supabase = createPublicServerClient();
 
   const { data, error } = await supabase
@@ -28,7 +29,7 @@ export async function getBlogBySlugServer(slug: string): Promise<BlogPost | null
 
   if (error) throw error;
   return data ? normalizeBlog(data as BlogRow) : null;
-}
+});
 
 export async function getPublishedBlogSlugs(): Promise<string[]> {
   const supabase = createPublicServerClient();
@@ -40,6 +41,24 @@ export async function getPublishedBlogSlugs(): Promise<string[]> {
 
   if (error) throw error;
   return (data ?? []).map((row) => row.slug);
+}
+
+export async function getPublishedBlogSitemapEntries(): Promise<
+  Array<{ slug: string; lastModified: Date }>
+> {
+  const supabase = createPublicServerClient();
+
+  const { data, error } = await supabase
+    .from("blogs")
+    .select("slug, updated_at, published_at")
+    .eq("status", "published");
+
+  if (error) throw error;
+
+  return (data ?? []).map((row) => ({
+    slug: row.slug,
+    lastModified: new Date(row.updated_at ?? row.published_at ?? Date.now()),
+  }));
 }
 
 export async function getPublishedBlogsServer(

@@ -47,7 +47,7 @@ export default async function Page() {
           ...(faqItems.length > 0 ? [buildFaqJsonLd(faqItems)] : []),
         ]}
       />
-      <AboutPage showStats showFaq initialFaqs={faqs} initialStats={stats} />
+      <AboutPage showStats showFaq initialFaqs={faqs} initialStats={stats} standalone />
     </>
   );
 }

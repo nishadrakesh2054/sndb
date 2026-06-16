@@ -1,37 +1,18 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { FaTimes } from "react-icons/fa";
-import { getActiveNoticePopup } from "@/utils/supabase/noticePopup";
+import type { NoticePopup as NoticePopupData } from "@/utils/supabase/noticePopup";
 import { getMediaUrl } from "@/lib/mediaUrl";
 
-export default function NoticePopup() {
-  const [showPopup, setShowPopup] = useState(false);
-  const [imageUrl, setImageUrl] = useState<string | null>(null);
+type NoticePopupProps = {
+  popup: NoticePopupData | null;
+};
 
-  useEffect(() => {
-    let cancelled = false;
+export default function NoticePopup({ popup }: NoticePopupProps) {
+  const [showPopup, setShowPopup] = useState(Boolean(popup));
 
-    const loadPopup = async () => {
-      try {
-        const data = await getActiveNoticePopup();
-        if (!cancelled && data) {
-          setImageUrl(data.image);
-          setShowPopup(true);
-        }
-      } catch {
-        // Popup is optional; fail silently.
-      }
-    };
-
-    loadPopup();
-
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  if (!showPopup || !imageUrl) return null;
+  if (!showPopup || !popup?.image) return null;
 
   return (
     <div
@@ -43,7 +24,7 @@ export default function NoticePopup() {
     >
       <div
         className="relative w-full max-w-2xl"
-        onClick={(e) => e.stopPropagation()}
+        onClick={(event) => event.stopPropagation()}
       >
         <button
           type="button"
@@ -55,7 +36,7 @@ export default function NoticePopup() {
         </button>
 
         <img
-          src={getMediaUrl(imageUrl)}
+          src={getMediaUrl(popup.image)}
           alt="Organization notice"
           className="max-h-[85vh] w-full rounded-lg bg-white object-contain shadow-lg"
         />

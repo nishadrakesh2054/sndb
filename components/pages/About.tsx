@@ -226,7 +226,8 @@ const About: React.FC<{
   showFaq?: boolean;
   initialFaqs?: Faq[];
   initialStats?: SiteStats;
-}> = ({ showStats = false, showFaq = false, initialFaqs, initialStats }) => {
+  standalone?: boolean;
+}> = ({ showStats = false, showFaq = false, initialFaqs, initialStats, standalone = false }) => {
   return (
     <>
       <PageSection>
@@ -235,7 +236,7 @@ const About: React.FC<{
             <PageHeader
               label="About Us"
               align="left"
-              as="h2"
+              as={standalone ? "h1" : "h2"}
               title={
                 <>
                   About{" "}

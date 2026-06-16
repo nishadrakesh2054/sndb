@@ -1,9 +1,7 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import { useEffect, useMemo, useState } from "react";
-import Lightbox from "yet-another-react-lightbox";
-import "yet-another-react-lightbox/styles.css";
-import Download from "yet-another-react-lightbox/plugins/download";
 import { FaChevronLeft, FaChevronRight, FaSearchPlus } from "react-icons/fa";
 import {
   getGalleryImageAlt,
@@ -16,6 +14,10 @@ import {
   PageHeader,
   PageSection,
 } from "@/components/PageHeader";
+
+const GalleryLightbox = dynamic(() => import("./GalleryLightbox"), {
+  ssr: false,
+});
 
 const IMAGES_PER_PAGE = 6;
 
@@ -91,7 +93,10 @@ const Gallery = ({ initialImages = [] }: { initialImages?: GalleryImage[] }) => 
     setIsOpen(true);
   };
 
-  const lightboxSlides = allImages.map((img) => ({ src: img.src }));
+  const lightboxSlides = allImages.map((img) => ({
+    src: img.src,
+    alt: img.alt,
+  }));
 
   return (
     <>
@@ -225,13 +230,14 @@ const Gallery = ({ initialImages = [] }: { initialImages?: GalleryImage[] }) => 
         </PageContainer>
       </PageSection>
 
-      <Lightbox
-        open={isOpen}
-        close={() => setIsOpen(false)}
-        slides={lightboxSlides}
-        index={currentImageIndex}
-        plugins={[Download]}
-      />
+      {isOpen ? (
+        <GalleryLightbox
+          open={isOpen}
+          close={() => setIsOpen(false)}
+          slides={lightboxSlides}
+          index={currentImageIndex}
+        />
+      ) : null}
     </>
   );
 };

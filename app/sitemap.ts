@@ -1,8 +1,8 @@
 import type { MetadataRoute } from "next";
 import { absoluteUrl } from "@/lib/seo";
 import { site, staticRoutes } from "@/lib/site";
-import { getPublishedBlogSlugs } from "@/utils/supabase/blogs.server";
-import { getPublishedNoticeSlugs } from "@/utils/supabase/notices.server";
+import { getPublishedBlogSitemapEntries } from "@/utils/supabase/blogs.server";
+import { getPublishedNoticeSitemapEntries } from "@/utils/supabase/notices.server";
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const lastModified = new Date();
@@ -18,21 +18,21 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   let noticeEntries: MetadataRoute.Sitemap = [];
 
   try {
-    const [blogSlugs, noticeSlugs] = await Promise.all([
-      getPublishedBlogSlugs(),
-      getPublishedNoticeSlugs(),
+    const [blogs, notices] = await Promise.all([
+      getPublishedBlogSitemapEntries(),
+      getPublishedNoticeSitemapEntries(),
     ]);
 
-    blogEntries = blogSlugs.map((slug) => ({
-      url: absoluteUrl(`/blog/${slug}`),
-      lastModified,
+    blogEntries = blogs.map((entry) => ({
+      url: absoluteUrl(`/blog/${entry.slug}`),
+      lastModified: entry.lastModified,
       changeFrequency: "weekly",
       priority: 0.7,
     }));
 
-    noticeEntries = noticeSlugs.map((slug) => ({
-      url: absoluteUrl(`/notice/${slug}`),
-      lastModified,
+    noticeEntries = notices.map((entry) => ({
+      url: absoluteUrl(`/notice/${entry.slug}`),
+      lastModified: entry.lastModified,
       changeFrequency: "weekly",
       priority: 0.7,
     }));

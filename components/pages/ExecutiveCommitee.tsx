@@ -234,13 +234,21 @@ const SectionSkeleton = () => (
   </div>
 );
 
-const ExecutiveCommittee: React.FC = () => {
-  const [categories, setCategories] = useState<CommitteeCategory[]>([]);
-  const [loading, setLoading] = useState(true);
+const ExecutiveCommittee: React.FC<{
+  initialCategories?: CommitteeCategory[];
+}> = ({ initialCategories = [] }) => {
+  const [categories, setCategories] = useState<CommitteeCategory[]>(
+    initialCategories
+  );
+  const [loading, setLoading] = useState(initialCategories.length === 0);
   const [error, setError] = useState<string | null>(null);
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
   useEffect(() => {
+    if (initialCategories.length > 0) {
+      return;
+    }
+
     let cancelled = false;
 
     const loadCommittee = async () => {
@@ -272,7 +280,7 @@ const ExecutiveCommittee: React.FC = () => {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [initialCategories.length]);
 
   const toggleCard = (id: string) => {
     setExpandedId((current) => (current === id ? null : id));

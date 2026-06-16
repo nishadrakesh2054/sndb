@@ -6,8 +6,9 @@ export const metadata: Metadata = createPageMetadata({
   title: "Page Not Found",
   description:
     "The page you are looking for could not be found on the Society of Nepal Doctors of Bangladesh website.",
-  path: "/404",
+  path: "/",
   noIndex: true,
+  omitCanonical: true,
 });
 
 export default function NotFound() {

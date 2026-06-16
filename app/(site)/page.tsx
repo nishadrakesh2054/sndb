@@ -21,6 +21,8 @@ const WhyJoinSNDB = dynamic(() =>
 
 export const metadata: Metadata = createHomeMetadata();
 
+export const revalidate = 300;
+
 export default async function HomePage() {
   const [heroSlides, homeBlogs] = await Promise.all([
     getHeroSlidesServer(3).catch(() => []),
@@ -32,7 +34,7 @@ export default async function HomePage() {
 
   return (
     <>
-      <Hero initialSlides={heroSlides} />
+      <Hero initialSlides={heroSlides} titleAs="h1" />
       <About />
       <MissionVisionValues />
       <WhyJoinSNDB />

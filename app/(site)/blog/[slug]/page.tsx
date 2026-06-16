@@ -40,6 +40,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
       title: "Blog Article",
       description: "Read articles and updates from SNDB.",
       path: `/blog/${slug}`,
+      noIndex: true,
     });
   }
 

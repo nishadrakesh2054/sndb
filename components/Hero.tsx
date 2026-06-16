@@ -10,7 +10,13 @@ const AUTOPLAY_MS = 5000;
 const heroHeightClass =
   "h-[475px] min-h-[475px] sm:h-[575px] sm:min-h-[575px] md:h-[calc(65vh+10px)] lg:h-[calc(72vh+10px)] max-h-[835px]";
 
-const Hero = ({ initialSlides = [] }: { initialSlides?: HeroSlide[] }) => {
+const Hero = ({
+  initialSlides = [],
+  titleAs = "h2",
+}: {
+  initialSlides?: HeroSlide[];
+  titleAs?: "h1" | "h2";
+}) => {
   const [slides, setSlides] = useState<HeroSlide[]>(initialSlides);
   const [loading, setLoading] = useState(initialSlides.length === 0);
   const [error, setError] = useState<string | null>(null);
@@ -83,6 +89,7 @@ const Hero = ({ initialSlides = [] }: { initialSlides?: HeroSlide[] }) => {
   if (error || slides.length === 0) return null;
 
   const activeSlide = slides[current];
+  const TitleTag = titleAs;
 
   return (
     <section
@@ -130,7 +137,7 @@ const Hero = ({ initialSlides = [] }: { initialSlides?: HeroSlide[] }) => {
           <div className="mx-auto flex max-w-7xl items-end justify-between gap-6">
             <div className="min-w-0 flex-1">
               {activeSlide.title && (
-                <h2
+                <TitleTag
                   className="text-xl font-semibold uppercase leading-snug tracking-wide text-white sm:text-2xl md:text-3xl"
                   style={{
                     WebkitTextStroke: "1px rgba(0, 0, 0, 0.6)",
@@ -139,7 +146,7 @@ const Hero = ({ initialSlides = [] }: { initialSlides?: HeroSlide[] }) => {
                   }}
                 >
                   {activeSlide.title}
-                </h2>
+                </TitleTag>
               )}
               {slides.length > 1 && (
                 <p

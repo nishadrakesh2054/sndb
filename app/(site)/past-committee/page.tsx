@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import PastEXCommPage from "@/components/pages/PastEXComm";
 import JsonLd from "@/components/seo/JsonLd";
 import { buildBreadcrumbJsonLd, createPageMetadata } from "@/lib/seo";
+import { getPastCommitteeServer } from "@/utils/supabase/executiveCommittee.server";
 
 export const metadata: Metadata = createPageMetadata({
   title: "Past Executive Committee",
@@ -15,7 +16,11 @@ export const metadata: Metadata = createPageMetadata({
   ],
 });
 
-export default function Page() {
+export const revalidate = 300;
+
+export default async function Page() {
+  const categories = await getPastCommitteeServer().catch(() => []);
+
   return (
     <>
       <JsonLd
@@ -24,7 +29,7 @@ export default function Page() {
           { name: "Past Executive Committee", path: "/past-committee" },
         ])}
       />
-      <PastEXCommPage />
+      <PastEXCommPage initialCategories={categories} />
     </>
   );
 }

@@ -19,6 +19,7 @@ type PageMetadataOptions = {
   ogImage?: string;
   ogType?: "website" | "article";
   noIndex?: boolean;
+  omitCanonical?: boolean;
 };
 
 export function createPageMetadata({
@@ -29,6 +30,7 @@ export function createPageMetadata({
   ogImage = site.defaultOgImage,
   ogType = "website",
   noIndex = false,
+  omitCanonical = false,
 }: PageMetadataOptions): Metadata {
   const url = absoluteUrl(path);
   const imageUrl = absoluteUrl(ogImage);
@@ -37,9 +39,7 @@ export function createPageMetadata({
     title,
     description,
     keywords,
-    alternates: {
-      canonical: url,
-    },
+    alternates: omitCanonical ? undefined : { canonical: url },
     openGraph: {
       title,
       description,
@@ -91,6 +91,7 @@ type ArticleMetadataOptions = {
   canonicalUrl?: string | null;
   ogTitle?: string | null;
   ogDescription?: string | null;
+  noIndex?: boolean;
 };
 
 export function createArticleMetadata({
@@ -106,6 +107,7 @@ export function createArticleMetadata({
   canonicalUrl,
   ogTitle,
   ogDescription,
+  noIndex = false,
 }: ArticleMetadataOptions): Metadata {
   const url = canonicalUrl || absoluteUrl(path);
   const imageUrl = absoluteUrl(image || site.defaultOgImage);
@@ -114,9 +116,7 @@ export function createArticleMetadata({
     title,
     description,
     keywords: keywords?.length ? [...keywords] : [...site.defaultKeywords],
-    alternates: {
-      canonical: url,
-    },
+    alternates: noIndex ? undefined : { canonical: url },
     openGraph: {
       title: ogTitle || title,
       description: ogDescription || description,
@@ -140,15 +140,17 @@ export function createArticleMetadata({
       description: ogDescription || description,
       images: [imageUrl],
     },
-    robots: {
-      index: true,
-      follow: true,
-      googleBot: {
-        index: true,
-        follow: true,
-        "max-image-preview": "large",
-      },
-    },
+    robots: noIndex
+      ? { index: false, follow: false }
+      : {
+          index: true,
+          follow: true,
+          googleBot: {
+            index: true,
+            follow: true,
+            "max-image-preview": "large",
+          },
+        },
   };
 }
 

@@ -30,6 +30,11 @@ type Notice = {
   status: "draft" | "published" | "archived";
   published_at: string | null;
   created_at: string;
+  meta_title: string | null;
+  meta_description: string | null;
+  meta_keywords: string[] | null;
+  og_title: string | null;
+  og_description: string | null;
 };
 
 const emptyForm = {
@@ -38,6 +43,11 @@ const emptyForm = {
   content: "",
   image_url: "",
   published: true,
+  meta_title: "",
+  meta_description: "",
+  meta_keywords: "",
+  og_title: "",
+  og_description: "",
 };
 
 const formatDate = (value: string | null) => {
@@ -55,6 +65,22 @@ const statusClass = (status: Notice["status"]) => {
   return "bg-amber-100 text-amber-800";
 };
 
+function formatKeywords(keywords: string[] | null | undefined): string {
+  return keywords?.join(", ") ?? "";
+}
+
+function parseKeywords(value: string): string[] {
+  return value
+    .split(",")
+    .map((keyword) => keyword.trim())
+    .filter(Boolean);
+}
+
+function resolveSeoText(custom: string, fallback: string): string {
+  const trimmed = custom.trim();
+  return trimmed || fallback;
+}
+
 export default function NoticesAdmin() {
   const [rows, setRows] = useState<Notice[]>([]);
   const [form, setForm] = useState(emptyForm);
@@ -71,7 +97,9 @@ export default function NoticesAdmin() {
     const supabase = createClient();
     const { data, error } = await supabase
       .from("notices")
-      .select("id, title, slug, content, image_url, status, published_at, created_at")
+      .select(
+        "id, title, slug, content, image_url, status, published_at, created_at, meta_title, meta_description, meta_keywords, og_title, og_description"
+      )
       .order("created_at", { ascending: false });
 
     if (error) {
@@ -110,6 +138,11 @@ export default function NoticesAdmin() {
       content: row.content ?? "",
       image_url: row.image_url,
       published: row.status === "published",
+      meta_title: row.meta_title ?? "",
+      meta_description: row.meta_description ?? "",
+      meta_keywords: formatKeywords(row.meta_keywords),
+      og_title: row.og_title ?? "",
+      og_description: row.og_description ?? "",
     });
     setEditing(true);
     setImageMode("url");
@@ -151,6 +184,26 @@ export default function NoticesAdmin() {
         ? existing?.published_at ?? now
         : null;
 
+      const metaTitle = resolveSeoText(form.meta_title, title);
+      const metaDescription = resolveSeoText(
+        form.meta_description,
+        excerpt ?? title
+      );
+      const metaKeywords = parseKeywords(form.meta_keywords);
+      const ogTitle = resolveSeoText(form.og_title, metaTitle);
+      const ogDescription = resolveSeoText(
+        form.og_description,
+        (excerpt ?? content).slice(0, 200)
+      );
+
+      if (metaDescription.length > 160) {
+        throw new Error("Meta description must be 160 characters or fewer.");
+      }
+
+      if (ogDescription.length > 200) {
+        throw new Error("Social description must be 200 characters or fewer.");
+      }
+
       const payload = {
         title,
         slug,
@@ -162,8 +215,12 @@ export default function NoticesAdmin() {
         status: form.published ? ("published" as const) : ("draft" as const),
         published_at: publishedAt,
         sort_order: 0,
-        meta_title: title,
-        meta_description: excerpt,
+        meta_title: metaTitle,
+        meta_description: metaDescription,
+        meta_keywords: metaKeywords,
+        og_title: ogTitle,
+        og_description: ogDescription,
+        og_image: imagePath,
       };
 
       const supabase = createClient();
@@ -272,6 +329,79 @@ export default function NoticesAdmin() {
                 />
                 Publish on site
               </label>
+
+              <div className="space-y-4 rounded-lg border border-gray-200 bg-gray-50 p-4">
+                <div>
+                  <h3 className="text-sm font-semibold text-gray-900">SEO &amp; search</h3>
+                  <p className="mt-1 text-xs text-gray-500">
+                    Leave blank to use the notice title and content summary.
+                  </p>
+                </div>
+
+                <div>
+                  <label className={labelClass}>Meta title</label>
+                  <input
+                    value={form.meta_title}
+                    onChange={(event) =>
+                      setForm({ ...form, meta_title: event.target.value })
+                    }
+                    placeholder={form.title || "Uses notice title if empty"}
+                    className={inputClass}
+                  />
+                </div>
+
+                <div>
+                  <label className={labelClass}>Meta description</label>
+                  <textarea
+                    value={form.meta_description}
+                    onChange={(event) =>
+                      setForm({ ...form, meta_description: event.target.value })
+                    }
+                    rows={2}
+                    maxLength={160}
+                    placeholder="Short description for search engines"
+                    className={inputClass}
+                  />
+                </div>
+
+                <div>
+                  <label className={labelClass}>Keywords</label>
+                  <input
+                    value={form.meta_keywords}
+                    onChange={(event) =>
+                      setForm({ ...form, meta_keywords: event.target.value })
+                    }
+                    placeholder="SNDB, notice, healthcare (comma-separated)"
+                    className={inputClass}
+                  />
+                </div>
+
+                <div>
+                  <label className={labelClass}>Social share title</label>
+                  <input
+                    value={form.og_title}
+                    onChange={(event) =>
+                      setForm({ ...form, og_title: event.target.value })
+                    }
+                    placeholder="Uses meta title if empty"
+                    className={inputClass}
+                  />
+                </div>
+
+                <div>
+                  <label className={labelClass}>Social share description</label>
+                  <textarea
+                    value={form.og_description}
+                    onChange={(event) =>
+                      setForm({ ...form, og_description: event.target.value })
+                    }
+                    rows={2}
+                    maxLength={200}
+                    placeholder="Uses content summary if empty"
+                    className={inputClass}
+                  />
+                </div>
+              </div>
 
               <div className="flex gap-2">
                 <button type="submit" disabled={saving} className={btnPrimaryClass}>

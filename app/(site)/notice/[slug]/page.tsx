@@ -18,7 +18,6 @@ import {
 
 export const revalidate = 300;
 export const dynamicParams = true;
-export const dynamic = "force-dynamic";
 
 type PageProps = {
   params: Promise<{ slug: string }>;
@@ -42,6 +41,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
       title: "Notice",
       description: "Official notice from SNDB.",
       path: `/notice/${slug}`,
+      noIndex: true,
     });
   }
 

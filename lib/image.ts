@@ -4,10 +4,18 @@ export function getOptimizedImageSrc(path: string): string {
   return getMediaUrl(path);
 }
 
+function isSupabaseStorageUrl(url: string): boolean {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL?.replace(/\/$/, "");
+  if (!supabaseUrl) return false;
+  return (
+    url.startsWith(`${supabaseUrl}/storage/v1/object/public/`) ||
+    url.includes(".supabase.co/storage/v1/object/public/")
+  );
+}
+
 export function canOptimizeImage(path: string): boolean {
-  const url = getMediaUrl(path);
+  const url = getOptimizedImageSrc(path);
   if (!url) return false;
-  // Only use next/image for static files in /public (avoids Vercel remote config errors).
   if (url.startsWith("/") && !url.startsWith("//")) return true;
-  return false;
+  return isSupabaseStorageUrl(url);
 }

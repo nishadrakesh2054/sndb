@@ -34,6 +34,12 @@ type Blog = {
   status: "draft" | "published" | "archived";
   published_at: string | null;
   created_at: string;
+  meta_title: string | null;
+  meta_description: string | null;
+  meta_keywords: string[] | null;
+  og_title: string | null;
+  og_description: string | null;
+  canonical_url: string | null;
 };
 
 const emptyBlogForm = {
@@ -44,6 +50,12 @@ const emptyBlogForm = {
   featured_image: "",
   category_id: "",
   published: true,
+  meta_title: "",
+  meta_description: "",
+  meta_keywords: "",
+  og_title: "",
+  og_description: "",
+  canonical_url: "",
 };
 
 const emptyCategoryForm = { name: "" };
@@ -78,6 +90,22 @@ function estimateReadingMinutes(content: string): number {
   return Math.max(1, Math.ceil(words / 200));
 }
 
+function formatKeywords(keywords: string[] | null | undefined): string {
+  return keywords?.join(", ") ?? "";
+}
+
+function parseKeywords(value: string): string[] {
+  return value
+    .split(",")
+    .map((keyword) => keyword.trim())
+    .filter(Boolean);
+}
+
+function resolveSeoText(custom: string, fallback: string): string {
+  const trimmed = custom.trim();
+  return trimmed || fallback;
+}
+
 export default function BlogsAdmin() {
   const [blogs, setBlogs] = useState<Blog[]>([]);
   const [categories, setCategories] = useState<BlogCategory[]>([]);
@@ -103,7 +131,7 @@ export default function BlogsAdmin() {
         supabase
           .from("blogs")
           .select(
-            "id, title, slug, excerpt, content, featured_image, category_id, status, published_at, created_at"
+            "id, title, slug, excerpt, content, featured_image, category_id, status, published_at, created_at, meta_title, meta_description, meta_keywords, og_title, og_description, canonical_url"
           )
           .order("created_at", { ascending: false }),
         supabase.from("blog_categories").select("id,name,slug").order("name", { ascending: true }),
@@ -151,6 +179,12 @@ export default function BlogsAdmin() {
       featured_image: row.featured_image,
       category_id: row.category_id ?? "",
       published: row.status === "published",
+      meta_title: row.meta_title ?? "",
+      meta_description: row.meta_description ?? "",
+      meta_keywords: formatKeywords(row.meta_keywords),
+      og_title: row.og_title ?? "",
+      og_description: row.og_description ?? "",
+      canonical_url: row.canonical_url ?? "",
     });
     setEditingBlog(true);
     setImageMode("url");
@@ -190,6 +224,20 @@ export default function BlogsAdmin() {
 
       const publishedAt = blogForm.published ? existing?.published_at ?? now : null;
       const readingMinutes = estimateReadingMinutes(content);
+      const metaTitle = resolveSeoText(blogForm.meta_title, title);
+      const metaDescription = resolveSeoText(blogForm.meta_description, excerpt.slice(0, 160));
+      const metaKeywords = parseKeywords(blogForm.meta_keywords);
+      const ogTitle = resolveSeoText(blogForm.og_title, metaTitle);
+      const ogDescription = resolveSeoText(blogForm.og_description, excerpt.slice(0, 200));
+      const canonicalUrl = blogForm.canonical_url.trim() || null;
+
+      if (metaDescription.length > 160) {
+        throw new Error("Meta description must be 160 characters or fewer.");
+      }
+
+      if (ogDescription.length > 200) {
+        throw new Error("Social description must be 200 characters or fewer.");
+      }
 
       const payload = {
         title,
@@ -204,12 +252,14 @@ export default function BlogsAdmin() {
         status: blogForm.published ? ("published" as const) : ("draft" as const),
         published_at: publishedAt,
         reading_time_minutes: readingMinutes,
-        tags: [] as string[],
-        meta_title: title,
-        meta_description: excerpt.slice(0, 160),
-        og_title: title,
-        og_description: excerpt.slice(0, 200),
+        tags: metaKeywords,
+        meta_title: metaTitle,
+        meta_description: metaDescription,
+        meta_keywords: metaKeywords,
+        og_title: ogTitle,
+        og_description: ogDescription,
         og_image: imagePath,
+        canonical_url: canonicalUrl,
       };
 
       const supabase = createClient();
@@ -389,6 +439,102 @@ export default function BlogsAdmin() {
               />
               Publish on site
             </label>
+
+            <div className="space-y-4 rounded-lg border border-gray-200 bg-gray-50 p-4">
+              <div>
+                <h3 className="text-sm font-semibold text-gray-900">SEO &amp; search</h3>
+                <p className="mt-1 text-xs text-gray-500">
+                  Leave blank to use the article title and summary. These values appear in Google
+                  results and social previews.
+                </p>
+              </div>
+
+              <div>
+                <label className={labelClass}>Meta title</label>
+                <input
+                  value={blogForm.meta_title}
+                  onChange={(event) =>
+                    setBlogForm({ ...blogForm, meta_title: event.target.value })
+                  }
+                  placeholder={blogForm.title || "Uses article title if empty"}
+                  className={inputClass}
+                />
+              </div>
+
+              <div>
+                <label className={labelClass}>
+                  Meta description
+                  <span className="ml-2 font-normal text-gray-400">
+                    ({blogForm.meta_description.length || blogForm.excerpt.length}/160)
+                  </span>
+                </label>
+                <textarea
+                  value={blogForm.meta_description}
+                  onChange={(event) =>
+                    setBlogForm({ ...blogForm, meta_description: event.target.value })
+                  }
+                  rows={2}
+                  maxLength={160}
+                  placeholder="Short description for search engines"
+                  className={inputClass}
+                />
+              </div>
+
+              <div>
+                <label className={labelClass}>Keywords</label>
+                <input
+                  value={blogForm.meta_keywords}
+                  onChange={(event) =>
+                    setBlogForm({ ...blogForm, meta_keywords: event.target.value })
+                  }
+                  placeholder="SNDB, healthcare, Nepal doctors (comma-separated)"
+                  className={inputClass}
+                />
+              </div>
+
+              <div>
+                <label className={labelClass}>Social share title</label>
+                <input
+                  value={blogForm.og_title}
+                  onChange={(event) =>
+                    setBlogForm({ ...blogForm, og_title: event.target.value })
+                  }
+                  placeholder="Uses meta title if empty"
+                  className={inputClass}
+                />
+              </div>
+
+              <div>
+                <label className={labelClass}>
+                  Social share description
+                  <span className="ml-2 font-normal text-gray-400">
+                    ({blogForm.og_description.length}/200)
+                  </span>
+                </label>
+                <textarea
+                  value={blogForm.og_description}
+                  onChange={(event) =>
+                    setBlogForm({ ...blogForm, og_description: event.target.value })
+                  }
+                  rows={2}
+                  maxLength={200}
+                  placeholder="Uses summary if empty"
+                  className={inputClass}
+                />
+              </div>
+
+              <div>
+                <label className={labelClass}>Canonical URL (optional)</label>
+                <input
+                  value={blogForm.canonical_url}
+                  onChange={(event) =>
+                    setBlogForm({ ...blogForm, canonical_url: event.target.value })
+                  }
+                  placeholder="https://example.com/blog/my-article"
+                  className={inputClass}
+                />
+              </div>
+            </div>
 
             <div className="flex gap-2">
               <button type="submit" disabled={saving} className={btnPrimaryClass}>

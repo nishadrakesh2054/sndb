@@ -121,12 +121,18 @@ const CardSkeleton = () => (
   </div>
 );
 
-const Member: React.FC = () => {
-  const [profiles, setProfiles] = useState<Member[]>([]);
-  const [loading, setLoading] = useState(true);
+const Member: React.FC<{ initialMembers?: Member[] }> = ({
+  initialMembers = [],
+}) => {
+  const [profiles, setProfiles] = useState<Member[]>(initialMembers);
+  const [loading, setLoading] = useState(initialMembers.length === 0);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    if (initialMembers.length > 0) {
+      return;
+    }
+
     let cancelled = false;
 
     const loadMembers = async () => {
@@ -156,7 +162,7 @@ const Member: React.FC = () => {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [initialMembers.length]);
 
   return (
     <>

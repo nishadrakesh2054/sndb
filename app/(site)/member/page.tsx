@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import MemberPage from "@/components/pages/Member";
 import JsonLd from "@/components/seo/JsonLd";
 import { buildBreadcrumbJsonLd, createPageMetadata } from "@/lib/seo";
+import { getAllMembersServer } from "@/utils/supabase/members.server";
 
 export const metadata: Metadata = createPageMetadata({
   title: "Life Members",
@@ -16,7 +17,11 @@ export const metadata: Metadata = createPageMetadata({
   ],
 });
 
-export default function Page() {
+export const revalidate = 300;
+
+export default async function Page() {
+  const members = await getAllMembersServer().catch(() => []);
+
   return (
     <>
       <JsonLd
@@ -25,7 +30,7 @@ export default function Page() {
           { name: "Life Members", path: "/member" },
         ])}
       />
-      <MemberPage />
+      <MemberPage initialMembers={members} />
     </>
   );
 }
