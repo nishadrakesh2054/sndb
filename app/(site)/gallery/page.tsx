@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import GalleryPage from "@/components/pages/Gallery";
 import JsonLd from "@/components/seo/JsonLd";
 import { buildBreadcrumbJsonLd, createPageMetadata } from "@/lib/seo";
+import { getPublishedGalleryImagesServer } from "@/utils/supabase/gallery.server";
 
 export const metadata: Metadata = createPageMetadata({
   title: "Photo Gallery",
@@ -17,7 +18,11 @@ export const metadata: Metadata = createPageMetadata({
   ogImage: "/about.jpg",
 });
 
-export default function Page() {
+export const revalidate = 300;
+
+export default async function Page() {
+  const images = await getPublishedGalleryImagesServer().catch(() => []);
+
   return (
     <>
       <JsonLd
@@ -26,7 +31,7 @@ export default function Page() {
           { name: "Gallery", path: "/gallery" },
         ])}
       />
-      <GalleryPage />
+      <GalleryPage initialImages={images} />
     </>
   );
 }

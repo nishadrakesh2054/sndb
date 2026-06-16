@@ -1,9 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
-import { FaBars, FaTimes, FaChevronDown, FaChevronRight } from "react-icons/fa";
-import { usePathname } from "next/navigation"
+import { usePathname } from "next/navigation";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { FaBars, FaChevronDown, FaChevronRight, FaTimes } from "react-icons/fa";
 import { ActiveLink } from "@/components/ActiveLink";
 
 type ActiveLinkItem = {
@@ -27,7 +27,7 @@ const navItems: NavItem[] = [
   {
     label: "Committee",
     items: [
-      { label: "Executive Committee", to: "/executive-comimttee" },
+      { label: "Executive Committee", to: "/executive-committee" },
       { label: "Past Executive Committee", to: "/past-committee" },
     ],
   },
@@ -49,7 +49,7 @@ const isDropdownActive = (items: ActiveLinkItem[], pathname: string) =>
 
 const navLinkClass = ({ isActive }: { isActive: boolean }) =>
   [
-    "relative px-1 py-2 text-sm font-medium transition-colors",
+    "relative px-1 py-2 text-sm font-medium transition-colors rounded-sm",
     isActive
       ? "text-white after:absolute after:bottom-0 after:left-0 after:h-0.5 after:w-full after:rounded-full after:bg-red-400"
       : "text-green-50 hover:text-white",
@@ -68,26 +68,82 @@ const Header: React.FC = () => {
   const [openMobileDropdown, setOpenMobileDropdown] = useState<string | null>(
     null
   );
+  const [openDesktopDropdown, setOpenDesktopDropdown] = useState<string | null>(
+    null
+  );
   const pathname = usePathname();
+  const headerRef = useRef<HTMLElement>(null);
+
+  const closeMenu = useCallback(() => {
+    setIsOpen(false);
+    setOpenMobileDropdown(null);
+    setOpenDesktopDropdown(null);
+  }, []);
 
   const openMenu = () => {
     setOpenMobileDropdown(null);
     setIsOpen(true);
   };
 
-  const closeMenu = () => {
-    setIsOpen(false);
-    setOpenMobileDropdown(null);
-  };
-
   const toggleMobileDropdown = (label: string) => {
     setOpenMobileDropdown((current) => (current === label ? null : label));
   };
 
+  const toggleDesktopDropdown = (label: string) => {
+    setOpenDesktopDropdown((current) => (current === label ? null : label));
+  };
+
+  useEffect(() => {
+    closeMenu();
+  }, [pathname, closeMenu]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+
+    document.body.style.overflow = "hidden";
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        closeMenu();
+      }
+    };
+
+    document.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.body.style.overflow = "";
+      document.removeEventListener("keydown", onKeyDown);
+    };
+  }, [isOpen, closeMenu]);
+
+  useEffect(() => {
+    if (!openDesktopDropdown) return;
+
+    const onPointerDown = (event: MouseEvent) => {
+      if (!headerRef.current?.contains(event.target as Node)) {
+        setOpenDesktopDropdown(null);
+      }
+    };
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setOpenDesktopDropdown(null);
+      }
+    };
+
+    document.addEventListener("mousedown", onPointerDown);
+    document.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.removeEventListener("mousedown", onPointerDown);
+      document.removeEventListener("keydown", onKeyDown);
+    };
+  }, [openDesktopDropdown]);
+
   return (
-    <header className="sticky top-0 z-40 border-b border-green-800/30 bg-gradient-to-r from-green-800 via-green-600 to-green-800 text-white shadow-md">
+    <header
+      ref={headerRef}
+      className="sticky top-0 z-40 border-b border-green-800/30 bg-gradient-to-r from-green-800 via-green-600 to-green-800 text-white shadow-md"
+    >
       <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3 sm:px-6 lg:px-8">
-        {/* Mobile branding */}
         <div className="flex w-full items-center justify-between md:hidden">
           <Link
             href="/"
@@ -96,14 +152,14 @@ const Header: React.FC = () => {
           >
             <img
               src="/sndblogo1.png"
-              alt="SNDB Logo"
+              alt="SNDB logo"
               className="h-14 w-14 shrink-0 object-contain"
             />
             <div className="min-w-0">
-              <h1 className="truncate text-sm font-bold leading-tight">
+              <p className="truncate text-sm font-bold leading-tight">
                 सोसाइटी फर नेप्लिज डॉक्टर्स फ्रॉम बंगलादेश
-              </h1>
-              <p className="truncate text-[11px] text-green-100">
+              </p>
+              <p className="truncate text-xs text-green-100">
                 Society For Nepalese Doctors from Bangladesh
               </p>
             </div>
@@ -114,39 +170,63 @@ const Header: React.FC = () => {
             onClick={() => (isOpen ? closeMenu() : openMenu())}
             aria-label={isOpen ? "Close menu" : "Open menu"}
             aria-expanded={isOpen}
+            aria-controls="mobile-navigation"
             className="ml-3 flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-white/20 bg-white/10 text-white transition-colors hover:bg-white/20"
           >
             {isOpen ? <FaTimes size={20} /> : <FaBars size={20} />}
           </button>
         </div>
 
-        {/* Desktop navigation */}
-        <nav className="hidden flex-grow items-center justify-center gap-6 lg:gap-8 md:flex">
+        <nav
+          className="hidden flex-grow items-center justify-center gap-6 lg:gap-8 md:flex"
+          aria-label="Main navigation"
+        >
           {navItems.map((item) =>
             isDropdown(item) ? (
-              <div key={item.label} className="group relative">
+              <div key={item.label} className="relative">
                 <button
                   type="button"
+                  id={`nav-${item.label.toLowerCase().replace(/\s+/g, "-")}`}
+                  onClick={() => toggleDesktopDropdown(item.label)}
                   className={[
-                    "flex items-center gap-1 px-1 py-2 text-sm font-medium transition-colors",
-                    isDropdownActive(item.items, pathname)
+                    "flex items-center gap-1 px-1 py-2 text-sm font-medium transition-colors rounded-sm",
+                    isDropdownActive(item.items, pathname) ||
+                      openDesktopDropdown === item.label
                       ? "text-white"
                       : "text-green-50 hover:text-white",
                   ].join(" ")}
                   aria-haspopup="true"
+                  aria-expanded={openDesktopDropdown === item.label}
+                  aria-controls={`desktop-menu-${item.label}`}
                 >
                   {item.label}
-                  <FaChevronDown className="h-3 w-3 transition-transform duration-200 group-hover:rotate-180" />
+                  <FaChevronDown
+                    className={[
+                      "h-3 w-3 transition-transform duration-200",
+                      openDesktopDropdown === item.label ? "rotate-180" : "",
+                    ].join(" ")}
+                  />
                 </button>
 
-                {/* Hover bridge + dropdown panel */}
-                <div className="invisible absolute left-0 top-full z-50 pt-2 opacity-0 transition-all duration-200 group-hover:visible group-hover:opacity-100">
+                <div
+                  id={`desktop-menu-${item.label}`}
+                  role="menu"
+                  aria-labelledby={`nav-${item.label.toLowerCase().replace(/\s+/g, "-")}`}
+                  className={[
+                    "absolute left-0 top-full z-50 pt-2 transition-all duration-200",
+                    openDesktopDropdown === item.label
+                      ? "visible opacity-100"
+                      : "invisible opacity-0 pointer-events-none",
+                  ].join(" ")}
+                >
                   <div className="min-w-[240px] overflow-hidden rounded-lg border border-green-100 bg-white py-1 shadow-xl">
                     {item.items.map((subItem) => (
                       <ActiveLink
                         key={subItem.to}
                         href={subItem.to}
+                        role="menuitem"
                         className={dropdownLinkClass}
+                        onClick={() => setOpenDesktopDropdown(null)}
                       >
                         {subItem.label}
                       </ActiveLink>
@@ -168,9 +248,12 @@ const Header: React.FC = () => {
         </nav>
       </div>
 
-      {/* Mobile menu */}
-      {isOpen && (
-        <nav className="border-t border-white/15 md:hidden">
+      {isOpen ? (
+        <nav
+          id="mobile-navigation"
+          className="border-t border-white/15 md:hidden"
+          aria-label="Mobile navigation"
+        >
           <div className="max-h-[70vh] overflow-y-auto pl-6 pr-4">
             {navItems.map((item) =>
               isDropdown(item) ? (
@@ -200,7 +283,7 @@ const Header: React.FC = () => {
                     />
                   </button>
 
-                  {openMobileDropdown === item.label && (
+                  {openMobileDropdown === item.label ? (
                     <div className="border-b border-white/10 bg-black/10">
                       {item.items.map((subItem) => (
                         <ActiveLink
@@ -221,7 +304,7 @@ const Header: React.FC = () => {
                         </ActiveLink>
                       ))}
                     </div>
-                  )}
+                  ) : null}
                 </div>
               ) : (
                 <ActiveLink
@@ -232,9 +315,7 @@ const Header: React.FC = () => {
                   className={({ isActive }) =>
                     [
                       "flex items-center gap-3 border-b border-white/10 py-3.5 text-sm",
-                      isActive
-                        ? "font-medium text-white"
-                        : "text-white/90",
+                      isActive ? "font-medium text-white" : "text-white/90",
                     ].join(" ")
                   }
                 >
@@ -245,7 +326,7 @@ const Header: React.FC = () => {
             )}
           </div>
         </nav>
-      )}
+      ) : null}
     </header>
   );
 };

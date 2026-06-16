@@ -2,9 +2,9 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import MediaImage from "@/components/MediaImage";
 import { FaArrowRight, FaChevronLeft, FaChevronRight } from "react-icons/fa";
 import { getPublishedBlogs, type BlogPost } from "@/utils/supabase/blogs";
-import { getMediaUrl } from "@/lib/mediaUrl";
 import {
   PageContainer,
   PageHeader,
@@ -35,16 +35,34 @@ const SectionHeader = ({ as = "h2" }: { as?: "h1" | "h2" }) => (
   />
 );
 
-const Blog = ({ isHomeSection = false }: { isHomeSection?: boolean }) => {
-  const [blogPosts, setBlogPosts] = useState<BlogPost[]>([]);
-  const [totalPosts, setTotalPosts] = useState(0);
+const Blog = ({
+  isHomeSection = false,
+  initialPosts = [],
+  initialTotal = 0,
+}: {
+  isHomeSection?: boolean;
+  initialPosts?: BlogPost[];
+  initialTotal?: number;
+}) => {
+  const [blogPosts, setBlogPosts] = useState<BlogPost[]>(initialPosts);
+  const [totalPosts, setTotalPosts] = useState(initialTotal);
   const [currentPage, setCurrentPage] = useState(1);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(
+    isHomeSection ? initialPosts.length === 0 : initialPosts.length === 0
+  );
   const [error, setError] = useState<string | null>(null);
 
   const pageCount = Math.ceil(totalPosts / BLOG_PAGE_SIZE);
 
   useEffect(() => {
+    if (isHomeSection && initialPosts.length > 0) {
+      return;
+    }
+
+    if (!isHomeSection && currentPage === 1 && initialPosts.length > 0) {
+      return;
+    }
+
     let cancelled = false;
 
     const loadBlogs = async () => {
@@ -80,7 +98,7 @@ const Blog = ({ isHomeSection = false }: { isHomeSection?: boolean }) => {
     return () => {
       cancelled = true;
     };
-  }, [isHomeSection, currentPage]);
+  }, [isHomeSection, currentPage, initialPosts.length]);
 
   const sectionClassName = isHomeSection
     ? "relative overflow-hidden border-t border-green-200/60 bg-[#e4f7ef] py-12 md:py-16"
@@ -147,13 +165,14 @@ const Blog = ({ isHomeSection = false }: { isHomeSection?: boolean }) => {
                 >
                   <Link
                     href={`/blog/${post.slug}`}
-                    className="block overflow-hidden"
+                    className="relative block h-48 overflow-hidden"
                   >
-                    <img
-                      src={getMediaUrl(post.featured_image)}
+                    <MediaImage
+                      src={post.featured_image}
                       alt={post.featured_image_alt || post.title}
-                      loading="lazy"
-                      className="h-48 w-full object-cover transition-transform duration-300 group-hover:scale-105"
+                      fill
+                      sizes="(max-width: 768px) 100vw, 33vw"
+                      className="object-cover transition-transform duration-300 group-hover:scale-105"
                     />
                   </Link>
 

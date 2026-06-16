@@ -7,7 +7,7 @@ export const metadata: Metadata = createPageMetadata({
   title: "Executive Committee",
   description:
     "Meet the current SNDB executive committee leadership for the 2023–2025 term, including office bearers, vice-presidents, and members.",
-  path: "/executive-comimttee",
+  path: "/executive-committee",
   keywords: [
     "SNDB executive committee",
     "medical society leadership",
@@ -21,7 +21,7 @@ export default function Page() {
       <JsonLd
         data={buildBreadcrumbJsonLd([
           { name: "Home", path: "/" },
-          { name: "Executive Committee", path: "/executive-comimttee" },
+          { name: "Executive Committee", path: "/executive-committee" },
         ])}
       />
       <ExecutiveCommiteePage />

@@ -41,3 +41,31 @@ export async function getPublishedBlogSlugs(): Promise<string[]> {
   if (error) throw error;
   return (data ?? []).map((row) => row.slug);
 }
+
+export async function getPublishedBlogsServer(
+  options: { limit?: number; page?: number; pageSize?: number } = {}
+) {
+  const { limit, page = 1, pageSize } = options;
+  const supabase = createPublicServerClient();
+
+  let query = supabase
+    .from("blogs")
+    .select(blogSelect, { count: "exact" })
+    .eq("status", "published")
+    .order("published_at", { ascending: false });
+
+  if (pageSize) {
+    const from = (page - 1) * pageSize;
+    query = query.range(from, from + pageSize - 1);
+  } else if (limit) {
+    query = query.limit(limit);
+  }
+
+  const { data, error, count } = await query;
+  if (error) throw error;
+
+  return {
+    posts: ((data ?? []) as BlogRow[]).map(normalizeBlog),
+    total: count ?? 0,
+  };
+}

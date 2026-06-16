@@ -2,7 +2,8 @@ import type { Metadata } from "next";
 import AboutPage from "@/components/pages/About";
 import JsonLd from "@/components/seo/JsonLd";
 import { buildBreadcrumbJsonLd, buildFaqJsonLd, createPageMetadata } from "@/lib/seo";
-import { createPublicServerClient } from "@/utils/supabase/public.server";
+import { getSiteStatsServer } from "@/utils/supabase/content.server";
+import { getActiveFaqsServer } from "@/utils/supabase/faqs.server";
 
 export const metadata: Metadata = createPageMetadata({
   title: "About Us",
@@ -18,15 +19,19 @@ export const metadata: Metadata = createPageMetadata({
   ],
 });
 
-export default async function Page() {
-  const supabase = createPublicServerClient();
-  const { data: faqs } = await supabase
-    .from("faqs")
-    .select("question, answer")
-    .eq("is_active", true)
-    .order("sort_order", { ascending: true });
+export const revalidate = 300;
 
-  const faqItems = (faqs ?? []).map((item) => ({
+export default async function Page() {
+  const [faqs, stats] = await Promise.all([
+    getActiveFaqsServer().catch(() => []),
+    getSiteStatsServer().catch(() => ({
+      memberCount: 0,
+      blogCount: 0,
+      noticeCount: 0,
+    })),
+  ]);
+
+  const faqItems = faqs.map((item) => ({
     question: item.question,
     answer: item.answer,
   }));
@@ -42,7 +47,7 @@ export default async function Page() {
           ...(faqItems.length > 0 ? [buildFaqJsonLd(faqItems)] : []),
         ]}
       />
-      <AboutPage showStats showFaq />
+      <AboutPage showStats showFaq initialFaqs={faqs} initialStats={stats} />
     </>
   );
 }

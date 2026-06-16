@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import dynamic from "next/dynamic";
 import Hero from "@/components/Hero";
 import { createHomeMetadata } from "@/lib/seo";
+import { getPublishedBlogsServer } from "@/utils/supabase/blogs.server";
 import { getHeroSlidesServer } from "@/utils/supabase/heroes.server";
 
 const About = dynamic(() => import("@/components/pages/About"));
@@ -21,7 +22,13 @@ const WhyJoinSNDB = dynamic(() =>
 export const metadata: Metadata = createHomeMetadata();
 
 export default async function HomePage() {
-  const heroSlides = await getHeroSlidesServer(3).catch(() => []);
+  const [heroSlides, homeBlogs] = await Promise.all([
+    getHeroSlidesServer(3).catch(() => []),
+    getPublishedBlogsServer({ limit: 3 }).catch(() => ({
+      posts: [],
+      total: 0,
+    })),
+  ]);
 
   return (
     <>
@@ -29,7 +36,11 @@ export default async function HomePage() {
       <About />
       <MissionVisionValues />
       <WhyJoinSNDB />
-      <Blog isHomeSection />
+      <Blog
+        isHomeSection
+        initialPosts={homeBlogs.posts}
+        initialTotal={homeBlogs.total}
+      />
       <Contact isHomeSection />
     </>
   );

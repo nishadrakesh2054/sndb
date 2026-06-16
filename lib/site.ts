@@ -30,7 +30,6 @@ export const site = {
     facebook:
       "https://www.facebook.com/share/PxQiCqxYdNR851RL/?mibextid=LQQJ4d",
     whatsapp: "https://wa.me/9779817073670",
-    instagram: "https://www.instagram.com",
   },
 } as const;
 
@@ -38,7 +37,7 @@ export const staticRoutes = [
   "/",
   "/about",
   "/executive-message",
-  "/executive-comimttee",
+  "/executive-committee",
   "/past-committee",
   "/member",
   "/register-member",

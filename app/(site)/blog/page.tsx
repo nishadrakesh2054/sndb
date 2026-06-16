@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import BlogPage from "@/components/pages/Blog";
 import JsonLd from "@/components/seo/JsonLd";
 import { buildBreadcrumbJsonLd, createPageMetadata } from "@/lib/seo";
+import { getPublishedBlogsServer } from "@/utils/supabase/blogs.server";
 
 export const metadata: Metadata = createPageMetadata({
   title: "Blog",
@@ -16,7 +17,14 @@ export const metadata: Metadata = createPageMetadata({
   ],
 });
 
-export default function Page() {
+export const revalidate = 300;
+
+export default async function Page() {
+  const { posts, total } = await getPublishedBlogsServer({
+    page: 1,
+    pageSize: 6,
+  }).catch(() => ({ posts: [], total: 0 }));
+
   return (
     <>
       <JsonLd
@@ -25,7 +33,7 @@ export default function Page() {
           { name: "Blog", path: "/blog" },
         ])}
       />
-      <BlogPage />
+      <BlogPage initialPosts={posts} initialTotal={total} />
     </>
   );
 }

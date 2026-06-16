@@ -3,10 +3,8 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { FaArrowRight, FaChevronDown } from "react-icons/fa";
-import { getPublishedBlogCount } from "@/utils/supabase/blogs";
+import MediaImage from "@/components/MediaImage";
 import { getActiveFaqs, type Faq } from "@/utils/supabase/faqs";
-import { getMemberCount } from "@/utils/supabase/members";
-import { getPublishedNoticeCount } from "@/utils/supabase/notices";
 import {
   PageContainer,
   PageHeader,
@@ -19,42 +17,60 @@ type StatItem = {
   label: string;
 };
 
-const StatsSection = () => {
-  const [stats, setStats] = useState<StatItem[]>([
-    { value: "1000+", label: "Doctors Network" },
-    { value: "—", label: "Life Members" },
-    { value: "—", label: "Notices & Updates" },
-    { value: "—", label: "Blog Articles" },
-  ]);
+type SiteStats = {
+  memberCount: number;
+  blogCount: number;
+  noticeCount: number;
+};
+
+const buildStats = (stats: SiteStats): StatItem[] => [
+  { value: "1000+", label: "Doctors Network" },
+  { value: `${stats.memberCount}+`, label: "Life Members" },
+  { value: `${stats.noticeCount}+`, label: "Notices & Updates" },
+  { value: `${stats.blogCount}+`, label: "Blog Articles" },
+];
+
+const StatsSection = ({ initialStats }: { initialStats?: SiteStats }) => {
+  const [stats, setStats] = useState<StatItem[]>(
+    initialStats
+      ? buildStats(initialStats)
+      : [
+          { value: "1000+", label: "Doctors Network" },
+          { value: "—", label: "Life Members" },
+          { value: "—", label: "Notices & Updates" },
+          { value: "—", label: "Blog Articles" },
+        ]
+  );
 
   useEffect(() => {
-    const loadStats = async () => {
-      let memberCount = 0;
-      let blogCount = 0;
-      let noticeCount = 0;
+    if (initialStats) {
+      return;
+    }
 
+    const loadStats = async () => {
       try {
-        [memberCount, blogCount, noticeCount] = await Promise.all([
+        const { getMemberCount } = await import("@/utils/supabase/members");
+        const { getPublishedBlogCount } = await import("@/utils/supabase/blogs");
+        const { getPublishedNoticeCount } = await import(
+          "@/utils/supabase/notices"
+        );
+
+        const [memberCount, blogCount, noticeCount] = await Promise.all([
           getMemberCount(),
           getPublishedBlogCount(),
           getPublishedNoticeCount(),
         ]);
-      } catch {
-        memberCount = 0;
-        blogCount = 0;
-        noticeCount = 0;
-      }
 
-      setStats([
-        { value: "1000+", label: "Doctors Network" },
-        { value: `${memberCount}+`, label: "Life Members" },
-        { value: `${noticeCount}+`, label: "Notices & Updates" },
-        { value: `${blogCount}+`, label: "Blog Articles" },
-      ]);
+        setStats(
+          buildStats({ memberCount, blogCount, noticeCount })
+        );
+      } catch {
+        setStats(buildStats({ memberCount: 0, blogCount: 0, noticeCount: 0 }));
+      }
     };
 
     loadStats();
-  }, []);
+  }, [initialStats]);
 
   return (
     <section className="border-t border-gray-200 bg-white py-10 md:py-14">
@@ -85,12 +101,16 @@ const StatsSection = () => {
   );
 };
 
-const FaqSection = () => {
-  const [faqs, setFaqs] = useState<Faq[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [openId, setOpenId] = useState<string | null>(null);
+const FaqSection = ({ initialFaqs = [] }: { initialFaqs?: Faq[] }) => {
+  const [faqs, setFaqs] = useState<Faq[]>(initialFaqs);
+  const [loading, setLoading] = useState(initialFaqs.length === 0);
+  const [openId, setOpenId] = useState<string | null>(initialFaqs[0]?.id ?? null);
 
   useEffect(() => {
+    if (initialFaqs.length > 0) {
+      return;
+    }
+
     let cancelled = false;
 
     const loadFaqs = async () => {
@@ -118,7 +138,7 @@ const FaqSection = () => {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [initialFaqs.length]);
 
   return (
     <section className="border-t border-green-200/60 bg-[#e4f7ef] py-12 md:py-16">
@@ -149,6 +169,7 @@ const FaqSection = () => {
           <div className="mx-auto max-w-3xl space-y-3">
             {faqs.map((faq, index) => {
               const isOpen = openId === faq.id;
+              const panelId = `faq-panel-${faq.id}`;
 
               return (
                 <article
@@ -157,7 +178,9 @@ const FaqSection = () => {
                 >
                   <button
                     type="button"
+                    id={`faq-button-${faq.id}`}
                     aria-expanded={isOpen}
+                    aria-controls={panelId}
                     onClick={() => setOpenId(isOpen ? null : faq.id)}
                     className="flex w-full items-start gap-4 px-5 py-4 text-left transition hover:bg-[#f4fbf7]"
                   >
@@ -175,7 +198,12 @@ const FaqSection = () => {
                     />
                   </button>
                   {isOpen ? (
-                    <div className="border-t border-green-100 px-5 pb-5 pt-4 pl-16">
+                    <div
+                      id={panelId}
+                      role="region"
+                      aria-labelledby={`faq-button-${faq.id}`}
+                      className="border-t border-green-100 px-5 pb-5 pt-4 pl-16"
+                    >
                       <p className="text-sm leading-relaxed text-gray-600">
                         {faq.answer}
                       </p>
@@ -193,10 +221,12 @@ const FaqSection = () => {
 
 const aboutimg = "/about.jpg";
 
-const About: React.FC<{ showStats?: boolean; showFaq?: boolean }> = ({
-  showStats = false,
-  showFaq = false,
-}) => {
+const About: React.FC<{
+  showStats?: boolean;
+  showFaq?: boolean;
+  initialFaqs?: Faq[];
+  initialStats?: SiteStats;
+}> = ({ showStats = false, showFaq = false, initialFaqs, initialStats }) => {
   return (
     <>
       <PageSection>
@@ -218,14 +248,14 @@ const About: React.FC<{ showStats?: boolean; showFaq?: boolean }> = ({
 
             <div className="space-y-6 text-justify leading-relaxed text-gray-600">
               <p>
-                Society for Nepalese Doctor from Bangladesh (SNDB) is the
-                non-political, non-profitable organization for the Neplase Doctors
+                Society for Nepalese Doctors from Bangladesh (SNDB) is the
+                non-political, non-profit organization for Nepalese doctors
                 who have accomplished either MBBS/BDS or MD/MS or both degrees
                 from Bangladesh, currently practicing in Nepal or abroad. It is
-                our pleasure to inform you that there are thousand of doctors who
-                have graduates from Bangladesh and many of them are holding major
+                our pleasure to inform you that there are thousands of doctors who
+                have graduated from Bangladesh and many of them are holding major
                 positions in most of the prestigious and reputed
-                institutions/Hospitals across Nepal.
+                institutions and hospitals across Nepal.
               </p>
               <p>
                 SNDB strives to create a platform for continuous professional
@@ -249,9 +279,12 @@ const About: React.FC<{ showStats?: boolean; showFaq?: boolean }> = ({
 
           <div className="order-1 lg:order-2">
             <div className="overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm">
-              <img
+              <MediaImage
                 src={aboutimg}
                 alt="Society of Nepal Doctors from Bangladesh"
+                width={800}
+                height={600}
+                sizes="(max-width: 1024px) 100vw, 50vw"
                 className="aspect-[4/3] w-full object-cover"
               />
             </div>
@@ -259,8 +292,8 @@ const About: React.FC<{ showStats?: boolean; showFaq?: boolean }> = ({
         </PageContainer>
       </PageSection>
 
-      {showStats && <StatsSection />}
-      {showFaq && <FaqSection />}
+      {showStats ? <StatsSection initialStats={initialStats} /> : null}
+      {showFaq ? <FaqSection initialFaqs={initialFaqs} /> : null}
     </>
   );
 };

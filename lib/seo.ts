@@ -184,7 +184,7 @@ export function buildOrganizationJsonLd() {
       addressLocality: site.address.locality,
       addressCountry: site.address.country,
     },
-    sameAs: [site.social.facebook, site.social.instagram, site.social.whatsapp],
+    sameAs: [site.social.facebook, site.social.whatsapp],
   };
 }
 

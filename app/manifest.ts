@@ -13,10 +13,16 @@ export default function manifest(): MetadataRoute.Manifest {
     lang: "en",
     icons: [
       {
-        src: site.defaultOgImage,
-        sizes: "512x512",
+        src: "/sndblogo1.png",
+        sizes: "192x192",
         type: "image/png",
         purpose: "any",
+      },
+      {
+        src: "/sndblogo1.png",
+        sizes: "512x512",
+        type: "image/png",
+        purpose: "maskable",
       },
     ],
   };

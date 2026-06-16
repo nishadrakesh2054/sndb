@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import NoticePage from "@/components/pages/Notice";
 import JsonLd from "@/components/seo/JsonLd";
 import { buildBreadcrumbJsonLd, createPageMetadata } from "@/lib/seo";
+import { getDocumentsServer } from "@/utils/supabase/documents.server";
+import { getPublishedNoticesServer } from "@/utils/supabase/notices.server";
 
 export const metadata: Metadata = createPageMetadata({
   title: "Notices & Documents",
@@ -16,7 +18,14 @@ export const metadata: Metadata = createPageMetadata({
   ],
 });
 
-export default function Page() {
+export const revalidate = 300;
+
+export default async function Page() {
+  const [notices, documents] = await Promise.all([
+    getPublishedNoticesServer().catch(() => []),
+    getDocumentsServer().catch(() => []),
+  ]);
+
   return (
     <>
       <JsonLd
@@ -25,7 +34,7 @@ export default function Page() {
           { name: "Notices", path: "/notice" },
         ])}
       />
-      <NoticePage />
+      <NoticePage initialNotices={notices} initialDocuments={documents} />
     </>
   );
 }

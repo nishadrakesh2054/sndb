@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { FaChevronLeft, FaChevronRight } from "react-icons/fa";
 import { getHeroSlides, type HeroSlide } from "@/utils/supabase/heroes";
-import { getMediaUrl } from "@/lib/mediaUrl";
+import MediaImage from "@/components/MediaImage";
 
 const AUTOPLAY_MS = 5000;
 
@@ -87,32 +87,25 @@ const Hero = ({ initialSlides = [] }: { initialSlides?: HeroSlide[] }) => {
   return (
     <section
       className="relative w-full overflow-hidden bg-white"
+      aria-roledescription="carousel"
+      aria-label="Featured highlights"
       onMouseEnter={() => setIsPaused(true)}
       onMouseLeave={() => setIsPaused(false)}
     >
       <div className={`relative overflow-hidden ${heroHeightClass}`}>
-        {slides.map((slide, index) => (
-          <div
-            key={slide.id}
-            aria-hidden={index !== current}
-            className={[
-              "absolute inset-0 overflow-hidden transition-opacity duration-700 ease-in-out",
-              index === current ? "opacity-100 z-10" : "opacity-0 z-0",
-            ].join(" ")}
-          >
-            <img
-              src={getMediaUrl(slide.image)}
-              alt={slide.title || `Slide ${index + 1}`}
-              loading={index === 0 ? "eager" : "lazy"}
-              fetchPriority={index === 0 ? "high" : "auto"}
-              decoding="async"
-              className="absolute inset-0 h-[calc(100%+10px)] w-full object-cover object-center"
-            />
-            <div className="pointer-events-none absolute inset-x-0 bottom-0 h-44 bg-gradient-to-t from-black/50 via-black/20 to-transparent" />
-          </div>
-        ))}
+        <div className="absolute inset-0 z-10">
+          <MediaImage
+            src={activeSlide.image}
+            alt={activeSlide.title || `Slide ${current + 1}`}
+            fill
+            priority
+            sizes="100vw"
+            className="object-cover object-center"
+          />
+          <div className="pointer-events-none absolute inset-x-0 bottom-0 h-44 bg-gradient-to-t from-black/50 via-black/20 to-transparent" />
+        </div>
 
-        {slides.length > 1 && (
+        {slides.length > 1 ? (
           <>
             <button
               type="button"
@@ -131,7 +124,7 @@ const Hero = ({ initialSlides = [] }: { initialSlides?: HeroSlide[] }) => {
               <FaChevronRight className="h-4 w-4" />
             </button>
           </>
-        )}
+        ) : null}
 
         <div className="absolute inset-x-0 bottom-0 z-20 px-4 pb-6 pt-16 sm:px-6 lg:px-8">
           <div className="mx-auto flex max-w-7xl items-end justify-between gap-6">

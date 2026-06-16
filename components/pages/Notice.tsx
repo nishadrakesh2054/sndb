@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { FaArrowRight, FaDownload, FaFilePdf, FaImage } from "react-icons/fa";
 import Link from "next/link";
+import MediaImage from "@/components/MediaImage";
 import { getDocuments, getDocumentFileKind, type Document } from "@/utils/supabase/documents";
 import {
   getNoticeDisplayDate,
@@ -76,13 +77,25 @@ const DocumentFileIcon = ({ filePath }: { filePath: string }) => {
   );
 };
 
-const Notice: React.FC = () => {
-  const [documents, setDocuments] = useState<Document[]>([]);
-  const [notices, setNotices] = useState<Notice[]>([]);
-  const [loading, setLoading] = useState(true);
+const Notice = ({
+  initialNotices = [],
+  initialDocuments = [],
+}: {
+  initialNotices?: Notice[];
+  initialDocuments?: Document[];
+}) => {
+  const [documents, setDocuments] = useState<Document[]>(initialDocuments);
+  const [notices, setNotices] = useState<Notice[]>(initialNotices);
+  const [loading, setLoading] = useState(
+    initialNotices.length === 0 && initialDocuments.length === 0
+  );
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    if (initialNotices.length > 0 || initialDocuments.length > 0) {
+      return;
+    }
+
     let cancelled = false;
 
     const loadData = async () => {
@@ -115,7 +128,7 @@ const Notice: React.FC = () => {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [initialNotices.length, initialDocuments.length]);
 
   return (
     <>
@@ -158,13 +171,14 @@ const Notice: React.FC = () => {
                       >
                         <Link
                           href={`/notice/${item.slug}`}
-                          className="shrink-0 overflow-hidden rounded-md border border-gray-200 bg-white"
+                          className="relative block h-20 w-20 shrink-0 overflow-hidden rounded-md border border-gray-200 bg-white sm:h-24 sm:w-24"
                         >
-                          <img
-                            src={getMediaUrl(item.image_url)}
+                          <MediaImage
+                            src={item.image_url}
                             alt={getNoticeImageAlt(item)}
-                            loading="lazy"
-                            className="h-20 w-20 object-cover sm:h-24 sm:w-24"
+                            fill
+                            sizes="96px"
+                            className="object-cover"
                           />
                         </Link>
                         <div className="flex min-w-0 flex-1 flex-col justify-center">

@@ -10,6 +10,7 @@ type ActiveLinkProps = {
   className?: string | ((props: { isActive: boolean }) => string);
   children: ReactNode;
   onClick?: () => void;
+  role?: string;
 };
 
 export function ActiveLink({
@@ -18,6 +19,7 @@ export function ActiveLink({
   className,
   children,
   onClick,
+  role,
 }: ActiveLinkProps) {
   const pathname = usePathname();
   const isActive = end
@@ -29,7 +31,7 @@ export function ActiveLink({
     typeof className === "function" ? className({ isActive }) : className;
 
   return (
-    <Link href={href} className={resolvedClass} onClick={onClick}>
+    <Link href={href} className={resolvedClass} onClick={onClick} role={role}>
       {children}
     </Link>
   );

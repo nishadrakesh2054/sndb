@@ -3,7 +3,6 @@ import {
   FaChevronRight,
   FaEnvelope,
   FaFacebookF,
-  FaInstagram,
   FaMapMarkerAlt,
   FaPhoneAlt,
   FaWhatsapp,
@@ -20,7 +19,7 @@ const pageLinks = [
 ];
 
 const committeeLinks = [
-  { label: "Executive Committee", to: "/executive-comimttee" },
+  { label: "Executive Committee", to: "/executive-committee" },
   { label: "Past Executive Committee", to: "/past-committee" },
 ];
 
@@ -53,11 +52,6 @@ const socialLinks = [
     icon: FaWhatsapp,
     href: "https://wa.me/9779817073670",
     label: "WhatsApp",
-  },
-  {
-    icon: FaInstagram,
-    href: "https://www.instagram.com",
-    label: "Instagram",
   },
 ];
 

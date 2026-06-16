@@ -1,6 +1,14 @@
 import type { Metadata, Viewport } from "next";
+import { Poppins } from "next/font/google";
 import "./globals.css";
 import { site } from "@/lib/site";
+
+const poppins = Poppins({
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
+  display: "swap",
+  variable: "--font-poppins",
+});
 
 export const metadata: Metadata = {
   metadataBase: new URL(site.url),
@@ -57,8 +65,11 @@ export const metadata: Metadata = {
     },
   },
   icons: {
-    icon: site.defaultOgImage,
-    apple: site.defaultOgImage,
+    icon: [
+      { url: "/favicon.ico", sizes: "any" },
+      { url: "/sndblogo1.png", type: "image/png", sizes: "512x512" },
+    ],
+    apple: "/sndblogo1.png",
   },
   manifest: "/manifest.webmanifest",
 };
@@ -75,7 +86,7 @@ export default function RootLayout({
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 
   return (
-    <html lang="en">
+    <html lang="en" className={poppins.variable}>
       <head>
         {supabaseUrl ? (
           <>
@@ -84,7 +95,7 @@ export default function RootLayout({
           </>
         ) : null}
       </head>
-      <body>{children}</body>
+      <body className={poppins.className}>{children}</body>
     </html>
   );
 }

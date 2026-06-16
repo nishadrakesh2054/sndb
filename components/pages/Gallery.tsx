@@ -25,15 +25,19 @@ type DisplayImage = {
   alt: string;
 };
 
-const Gallery = () => {
-  const [images, setImages] = useState<GalleryImage[]>([]);
-  const [loading, setLoading] = useState(true);
+const Gallery = ({ initialImages = [] }: { initialImages?: GalleryImage[] }) => {
+  const [images, setImages] = useState<GalleryImage[]>(initialImages);
+  const [loading, setLoading] = useState(initialImages.length === 0);
   const [error, setError] = useState<string | null>(null);
   const [isOpen, setIsOpen] = useState(false);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [currentPage, setCurrentPage] = useState(0);
 
   useEffect(() => {
+    if (initialImages.length > 0) {
+      return;
+    }
+
     let cancelled = false;
 
     const loadGallery = async () => {
@@ -63,7 +67,7 @@ const Gallery = () => {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [initialImages.length]);
 
   const allImages: DisplayImage[] = useMemo(
     () =>

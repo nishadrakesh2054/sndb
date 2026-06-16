@@ -3,13 +3,13 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { FaArrowLeft } from "react-icons/fa";
+import MediaImage from "@/components/MediaImage";
 import {
   getNoticeBySlug,
   getNoticeDisplayDate,
   getNoticeImageAlt,
   type Notice,
 } from "@/utils/supabase/notices";
-import { getMediaUrl } from "@/lib/mediaUrl";
 import { PageContainer, PageHeader, PageSection } from "@/components/PageHeader";
 import Loader from "./Loader";
 
@@ -133,12 +133,15 @@ const NoticeDetails = ({
           )}
 
           <div className="overflow-hidden rounded-xl border border-gray-200 bg-white p-4 shadow-sm sm:p-6">
-            <img
-              src={getMediaUrl(notice.image_url)}
-              loading="lazy"
-              alt={getNoticeImageAlt(notice)}
-              className="mx-auto w-full max-w-3xl rounded-lg object-contain"
-            />
+            <div className="relative mx-auto aspect-[4/3] w-full max-w-3xl">
+              <MediaImage
+                src={notice.image_url}
+                alt={getNoticeImageAlt(notice)}
+                fill
+                sizes="(max-width: 768px) 100vw, 768px"
+                className="rounded-lg object-contain"
+              />
+            </div>
           </div>
 
           {notice.content && (

@@ -4,7 +4,6 @@ import {
   FaPhoneAlt,
   FaEnvelope,
   FaMapMarkerAlt,
-  FaInstagram,
 } from "react-icons/fa";
 
 const contactItems = [
@@ -36,12 +35,6 @@ const socialLinks = [
     href: "https://wa.me/9779817073670",
     label: "WhatsApp",
     hoverClass: "hover:bg-green-500 hover:border-green-400",
-  },
-  {
-    icon: FaInstagram,
-    href: "https://www.instagram.com",
-    label: "Instagram",
-    hoverClass: "hover:bg-pink-500 hover:border-pink-400",
   },
   {
     icon: FaEnvelope,

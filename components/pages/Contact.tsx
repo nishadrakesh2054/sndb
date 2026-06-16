@@ -5,7 +5,6 @@ import {
   FaArrowRight,
   FaEnvelope,
   FaFacebookF,
-  FaInstagram,
   FaMapMarkerAlt,
   FaPhoneAlt,
   FaWhatsapp,
@@ -59,11 +58,6 @@ const socialLinks = [
     icon: FaWhatsapp,
     href: "https://wa.me/9779817073670",
     label: "WhatsApp",
-  },
-  {
-    icon: FaInstagram,
-    href: "https://www.instagram.com",
-    label: "Instagram",
   },
 ];
 

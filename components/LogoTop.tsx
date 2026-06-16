@@ -33,15 +33,14 @@ const LogoTop: React.FC = () => {
           {/* Logo */}
           <img
             src="/sndblogo1.png"
-            alt="Logo"
+            alt="SNDB logo"
             className="h-28 w-28 object-contain "
           />
           {/* Text */}
           <div>
-            <h1 className="text-2xl font-bold text-green-600">
-              {/* बंगलादेशस्थित नेपाली चिकित्सक समाज */}
+            <p className="text-2xl font-bold text-green-600" lang="ne">
               सोसाइटी फर नेप्लिज डॉक्टर्स फ्रॉम बंगलादेश
-            </h1>
+            </p>
             <p className="text-lg text-red-700 font-semibold">
               Society For Nepalese Doctors from Bangladesh
             </p>

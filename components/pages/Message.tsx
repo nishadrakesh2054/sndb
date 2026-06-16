@@ -94,7 +94,7 @@ const Message = () => {
 
                 <div className="mt-8 flex flex-wrap gap-3">
                   <Link
-                    href="/executive-comimttee"
+                    href="/executive-committee"
                     className="group inline-flex items-center gap-2 rounded-full bg-green-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-green-700"
                   >
                     Executive Committee
