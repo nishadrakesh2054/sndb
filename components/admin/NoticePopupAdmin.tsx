@@ -13,6 +13,7 @@ import {
   btnIconDangerClass,
   btnPrimaryClass,
   btnSecondaryClass,
+  inputClass,
   labelClass,
 } from "@/lib/admin/config";
 import { revalidateNoticeContent } from "@/lib/admin/revalidateSite";
@@ -23,12 +24,24 @@ import { createClient } from "@/utils/supabase/client";
 type NoticePopup = {
   id: string;
   image: string;
+  link: string | null;
   is_active: boolean;
   created_at: string;
   updated_at: string;
 };
 
-const emptyForm = { id: "", image: "", is_active: false };
+const emptyForm = { id: "", image: "", link: "", is_active: false };
+
+const normalizeLink = (link: string) => {
+  const trimmed = link.trim();
+  if (!trimmed) return null;
+
+  if (trimmed.startsWith("http://") || trimmed.startsWith("https://")) {
+    return trimmed;
+  }
+
+  return trimmed.startsWith("/") ? trimmed : `/${trimmed}`;
+};
 
 export default function NoticePopupAdmin() {
   const [rows, setRows] = useState<NoticePopup[]>([]);
@@ -79,7 +92,12 @@ export default function NoticePopupAdmin() {
   };
 
   const openEditForm = (row: NoticePopup) => {
-    setForm({ id: row.id, image: row.image, is_active: row.is_active });
+    setForm({
+      id: row.id,
+      image: row.image,
+      link: row.link ?? "",
+      is_active: row.is_active,
+    });
     setEditing(true);
     setImageMode("url");
     setImageFile(null);
@@ -106,7 +124,11 @@ export default function NoticePopupAdmin() {
       }
 
       const supabase = createClient();
-      const payload = { image: imagePath, is_active: form.is_active };
+      const payload = {
+        image: imagePath,
+        link: normalizeLink(form.link),
+        is_active: form.is_active,
+      };
       const { error } = editing
         ? await supabase.from("notice_popups").update(payload).eq("id", form.id)
         : await supabase.from("notice_popups").insert(payload);
@@ -154,7 +176,7 @@ export default function NoticePopupAdmin() {
     <div>
       <AdminPageHeader
         title="Notice Popup"
-        description="Manage homepage notice popup images and active state."
+        description="Manage homepage notice popup images, redirect links, and active state."
         action={
           !showForm ? (
             <button type="button" onClick={openAddForm} className={btnPrimaryClass}>
@@ -186,6 +208,22 @@ export default function NoticePopupAdmin() {
                   onFileChange={setImageFile}
                   existingPath={editing ? form.image : ""}
                 />
+              </div>
+
+              <div>
+                <label className={labelClass}>Link (optional)</label>
+                <input
+                  type="text"
+                  value={form.link}
+                  onChange={(event) =>
+                    setForm({ ...form, link: event.target.value })
+                  }
+                  placeholder="/gallery"
+                  className={inputClass}
+                />
+                <p className="mt-1 text-xs text-gray-500">
+                  Page path or full URL. Clicking the popup image opens this link.
+                </p>
               </div>
 
               <label className="flex items-center gap-2 text-sm text-gray-700">
@@ -250,6 +288,14 @@ export default function NoticePopupAdmin() {
                   >
                     {row.is_active ? "Active" : "Inactive"}
                   </span>
+                  {row.link ? (
+                    <p className="mt-2 truncate text-sm text-gray-600">
+                      Link:{" "}
+                      <span className="font-medium text-green-700">{row.link}</span>
+                    </p>
+                  ) : (
+                    <p className="mt-2 text-sm text-gray-400">No link set</p>
+                  )}
                 </div>
 
                 <div className="flex shrink-0 gap-2">

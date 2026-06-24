@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
 import { FaTimes } from "react-icons/fa";
 import type { NoticePopup as NoticePopupData } from "@/utils/supabase/noticePopup";
@@ -9,10 +10,36 @@ type NoticePopupProps = {
   popup: NoticePopupData | null;
 };
 
+const normalizeLink = (link: string) => {
+  const trimmed = link.trim();
+  if (!trimmed) return "";
+
+  if (trimmed.startsWith("http://") || trimmed.startsWith("https://")) {
+    return trimmed;
+  }
+
+  return trimmed.startsWith("/") ? trimmed : `/${trimmed}`;
+};
+
+const isExternalLink = (href: string) =>
+  href.startsWith("http://") || href.startsWith("https://");
+
 export default function NoticePopup({ popup }: NoticePopupProps) {
   const [showPopup, setShowPopup] = useState(Boolean(popup));
 
   if (!showPopup || !popup?.image) return null;
+
+  const href = popup.link ? normalizeLink(popup.link) : "";
+  const image = (
+    <img
+      src={getMediaUrl(popup.image)}
+      alt="Organization notice"
+      className={[
+        "max-h-[85vh] w-full rounded-lg bg-white object-contain shadow-lg",
+        href ? "cursor-pointer transition hover:opacity-95" : "",
+      ].join(" ")}
+    />
+  );
 
   return (
     <div
@@ -35,11 +62,24 @@ export default function NoticePopup({ popup }: NoticePopupProps) {
           <FaTimes className="h-4 w-4" />
         </button>
 
-        <img
-          src={getMediaUrl(popup.image)}
-          alt="Organization notice"
-          className="max-h-[85vh] w-full rounded-lg bg-white object-contain shadow-lg"
-        />
+        {href ? (
+          isExternalLink(href) ? (
+            <a
+              href={href}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={() => setShowPopup(false)}
+            >
+              {image}
+            </a>
+          ) : (
+            <Link href={href} onClick={() => setShowPopup(false)}>
+              {image}
+            </Link>
+          )
+        ) : (
+          image
+        )}
       </div>
     </div>
   );

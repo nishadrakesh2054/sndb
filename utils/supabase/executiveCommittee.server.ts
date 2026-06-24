@@ -80,3 +80,11 @@ export function getExecutiveCommitteeServer(): Promise<CommitteeCategory[]> {
 export function getPastCommitteeServer(): Promise<CommitteeCategory[]> {
   return getCommitteeByGroupServer("past");
 }
+
+export function getAdvisoryBoardServer(): Promise<CommitteeCategory[]> {
+  return getCommitteeByGroupServer("advisory");
+}
+
+export function getGeneralMembersServer(): Promise<CommitteeCategory[]> {
+  return getCommitteeByGroupServer("general");
+}

@@ -1,4 +1,5 @@
 import Footer from "@/components/Footer";
+import FloatingActions from "@/components/FloatingActions";
 import Header from "@/components/Header";
 import LogoTop from "@/components/LogoTop";
 import NoticePopup from "@/components/NoticePopup";
@@ -28,6 +29,7 @@ export default async function SiteLayout({
       <Header />
       <NoticePopup popup={popup} />
       <main id="main-content">{children}</main>
+      <FloatingActions />
       <Footer />
     </SiteShell>
   );

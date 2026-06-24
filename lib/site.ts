@@ -32,17 +32,3 @@ export const site = {
     whatsapp: "https://wa.me/9779817073670",
   },
 } as const;
-
-export const staticRoutes = [
-  "/",
-  "/about",
-  "/executive-message",
-  "/executive-committee",
-  "/past-committee",
-  "/member",
-  "/register-member",
-  "/blog",
-  "/notice",
-  "/gallery",
-  "/contact",
-] as const;

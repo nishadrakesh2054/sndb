@@ -38,10 +38,10 @@ const LogoTop: React.FC = () => {
           />
           {/* Text */}
           <div>
-            <p className="text-2xl font-bold text-green-600" lang="ne">
+            <p className="text-2xl font-bold text-green-600 lg:text-3xl" lang="ne">
               सोसाइटी फर नेप्लिज डॉक्टर्स फ्रॉम बंगलादेश
             </p>
-            <p className="text-lg text-red-700 font-semibold">
+            <p className="text-lg font-semibold text-red-700 lg:text-xl">
               Society For Nepalese Doctors from Bangladesh
             </p>
           </div>

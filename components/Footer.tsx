@@ -8,25 +8,32 @@ import {
   FaWhatsapp,
 } from "react-icons/fa";
 
+import { aboutNavItems } from "@/lib/aboutNav";
+import { membersNavItems } from "@/lib/membersNav";
+
 const pageLinks = [
   { label: "Home", to: "/" },
-  { label: "About Us", to: "/about" },
   { label: "President's Message", to: "/executive-message" },
-  { label: "Blogs", to: "/blog" },
+  { label: "Activities", to: "/blog" },
   { label: "Notice", to: "/notice" },
   { label: "Gallery", to: "/gallery" },
   { label: "Contact", to: "/contact" },
 ];
+
+const aboutLinks = aboutNavItems.map((item) => ({
+  label: item.label,
+  to: item.href,
+}));
 
 const committeeLinks = [
   { label: "Executive Committee", to: "/executive-committee" },
   { label: "Past Executive Committee", to: "/past-committee" },
 ];
 
-const memberLinks = [
-  { label: "Life Members", to: "/member" },
-  { label: "Membership Info", to: "/register-member" },
-];
+const memberLinks = membersNavItems.map((item) => ({
+  label: item.label,
+  to: item.href,
+}));
 
 const contactInfo = [
   { icon: FaMapMarkerAlt, text: "Kathmandu, Nepal" },
@@ -133,6 +140,17 @@ const Footer: React.FC = () => {
           </div>
 
           <div className="lg:col-span-2">
+            <FooterHeading>About Us</FooterHeading>
+            <ul className="space-y-2.5">
+              {aboutLinks.map((item) => (
+                <li key={item.to}>
+                  <FooterActiveLink href={item.to} label={item.label} />
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          <div className="lg:col-span-2">
             <FooterHeading>Pages</FooterHeading>
             <ul className="space-y-2.5">
               {pageLinks.map((item) => (
@@ -143,7 +161,7 @@ const Footer: React.FC = () => {
             </ul>
           </div>
 
-          <div className="lg:col-span-3">
+          <div className="lg:col-span-2">
             <FooterHeading>Committee</FooterHeading>
             <ul className="space-y-2.5">
               {committeeLinks.map((item) => (
@@ -163,7 +181,7 @@ const Footer: React.FC = () => {
             </ul>
           </div>
 
-          <div className="lg:col-span-3">
+          <div className="lg:col-span-2">
             <FooterHeading>Contact Us</FooterHeading>
             <ul className="space-y-4">
               {contactInfo.map((item) => {

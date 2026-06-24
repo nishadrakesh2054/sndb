@@ -8,6 +8,7 @@ import {
   SectionHeader,
 } from "@/components/PageHeader";
 import MembershipForm from "@/components/MembershipForm";
+import PaymentQrSection from "@/components/PaymentQrSection";
 
 const MemberShip: React.FC = () => {
   return (
@@ -147,6 +148,8 @@ const MemberShip: React.FC = () => {
                     </div>
                   </dl>
                 </section>
+
+                <PaymentQrSection />
               </div>
             </div>
 

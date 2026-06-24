@@ -5,6 +5,8 @@ import { usePathname } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { FaBars, FaChevronDown, FaChevronRight, FaTimes } from "react-icons/fa";
 import { ActiveLink } from "@/components/ActiveLink";
+import { aboutNavItems, isAboutPath } from "@/lib/aboutNav";
+import { membersNavItems, isMembersPath } from "@/lib/membersNav";
 
 type ActiveLinkItem = {
   label: string;
@@ -22,7 +24,13 @@ const isDropdown = (item: NavItem): item is NavDropdown => "items" in item;
 
 const navItems: NavItem[] = [
   { label: "Home", to: "/" },
-  { label: "About Us", to: "/about" },
+  {
+    label: "About Us",
+    items: aboutNavItems.map((item) => ({
+      label: item.label,
+      to: item.href,
+    })),
+  },
   { label: "President's Message", to: "/executive-message" },
   {
     label: "Committee",
@@ -33,19 +41,27 @@ const navItems: NavItem[] = [
   },
   {
     label: "Members",
-    items: [
-      { label: "Life Members", to: "/member" },
-      { label: "Membership Info", to: "/register-member" },
-    ],
+    items: membersNavItems.map((item) => ({
+      label: item.label,
+      to: item.href,
+    })),
   },
-  { label: "Blogs", to: "/blog" },
+  { label: "Activities", to: "/blog" },
   { label: "Notice", to: "/notice" },
   { label: "Gallery", to: "/gallery" },
   { label: "Contact", to: "/contact" },
 ];
 
 const isDropdownActive = (items: ActiveLinkItem[], pathname: string) =>
-  items.some((item) => pathname === item.to);
+  items.some((item) => pathname === item.to) ||
+  (items.some((item) => item.to.startsWith("/about/")) && isAboutPath(pathname)) ||
+  (items.some(
+    (item) =>
+      item.to.startsWith("/members/") ||
+      item.to === "/register-member" ||
+      item.to === "/member"
+  ) &&
+    (isMembersPath(pathname) || pathname === "/register-member"));
 
 const navLinkClass = ({ isActive }: { isActive: boolean }) =>
   [
@@ -153,13 +169,13 @@ const Header: React.FC = () => {
             <img
               src="/sndblogo1.png"
               alt="SNDB logo"
-              className="h-14 w-14 shrink-0 object-contain"
+              className="h-12 w-12 shrink-0 object-contain sm:h-14 sm:w-14"
             />
-            <div className="min-w-0">
-              <p className="truncate text-sm font-bold leading-tight">
+            <div className="min-w-0 flex-1 pr-2">
+              <p className="text-[10px] font-bold leading-snug sm:text-[11px]" lang="ne">
                 सोसाइटी फर नेप्लिज डॉक्टर्स फ्रॉम बंगलादेश
               </p>
-              <p className="truncate text-xs text-green-100">
+              <p className="mt-0.5 text-[9px] leading-snug text-green-100 sm:text-[10px]">
                 Society For Nepalese Doctors from Bangladesh
               </p>
             </div>

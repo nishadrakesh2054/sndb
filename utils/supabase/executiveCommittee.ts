@@ -17,7 +17,7 @@ export type CommitteeMember = {
   sort_order: number;
 };
 
-export type CommitteeGroup = "current" | "past";
+export type CommitteeGroup = "current" | "past" | "advisory" | "general";
 
 export type CommitteeCategory = {
   id: string;
@@ -110,9 +110,25 @@ export function getPastCommittee(): Promise<CommitteeCategory[]> {
   return getCommitteeByGroup("past");
 }
 
+export function getAdvisoryBoard(): Promise<CommitteeCategory[]> {
+  return getCommitteeByGroup("advisory");
+}
+
+export function getGeneralMembers(): Promise<CommitteeCategory[]> {
+  return getCommitteeByGroup("general");
+}
+
 export function getCategoryDescription(category: CommitteeCategory): string | undefined {
-  if (category.slug === "members" || category.slug === "past-members") {
-    return `${category.members.length} executive committee members`;
+  if (
+    category.slug === "members" ||
+    category.slug === "past-members" ||
+    category.slug === "general-members"
+  ) {
+    return `${category.members.length} member${category.members.length === 1 ? "" : "s"}`;
+  }
+
+  if (category.slug === "advisory-board") {
+    return `${category.members.length} advisory board member${category.members.length === 1 ? "" : "s"}`;
   }
 
   return category.description ?? undefined;

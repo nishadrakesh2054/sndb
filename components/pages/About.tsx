@@ -30,7 +30,7 @@ const buildStats = (stats: SiteStats): StatItem[] => [
   { value: `${stats.blogCount}+`, label: "Blog Articles" },
 ];
 
-const StatsSection = ({ initialStats }: { initialStats?: SiteStats }) => {
+export const StatsSection = ({ initialStats }: { initialStats?: SiteStats }) => {
   const [stats, setStats] = useState<StatItem[]>(
     initialStats
       ? buildStats(initialStats)
@@ -97,7 +97,7 @@ const StatsSection = ({ initialStats }: { initialStats?: SiteStats }) => {
   );
 };
 
-const FaqSection = ({ initialFaqs = [] }: { initialFaqs?: Faq[] }) => {
+export const FaqSection = ({ initialFaqs = [] }: { initialFaqs?: Faq[] }) => {
   const [faqs, setFaqs] = useState<Faq[]>(initialFaqs);
   const [loading, setLoading] = useState(initialFaqs.length === 0);
   const [openId, setOpenId] = useState<string | null>(initialFaqs[0]?.id ?? null);
@@ -295,7 +295,7 @@ const About: React.FC<{
             </div>
 
             <Link
-              href="/about"
+              href="/about/history"
               className="group mt-10 inline-flex items-center gap-2 rounded-full bg-green-600 px-6 py-2.5 text-sm font-semibold text-white shadow-sm transition-all hover:bg-green-700 hover:shadow-md"
             >
               Read More

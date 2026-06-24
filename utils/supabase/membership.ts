@@ -14,6 +14,12 @@ export type MembershipFormData = {
   email: string;
   phone: string;
   position: string;
+  college_name: string;
+  passing_year: string;
+  nmc_reg_no: string;
+  current_working_place: string;
+  bloodgroup: string;
+  address: string;
   profileImage: File;
   voucherImage: File;
 };
@@ -76,6 +82,12 @@ export async function submitMembershipApplication(
     email: data.email.trim(),
     phone: data.phone.trim(),
     position: data.position.trim(),
+    college_name: data.college_name.trim(),
+    passing_year: data.passing_year.trim(),
+    nmc_reg_no: data.nmc_reg_no.trim(),
+    current_working_place: data.current_working_place.trim(),
+    bloodgroup: data.bloodgroup.trim(),
+    address: data.address.trim(),
     profile_image: profileImage,
     voucher_image: voucherImage,
   });

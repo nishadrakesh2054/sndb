@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useEffect, useRef, useState } from "react";
+import { FormEvent, Fragment, useEffect, useMemo, useRef, useState } from "react";
 import { FaPen, FaPlus, FaTimes, FaTrash } from "react-icons/fa";
 import ImageInput, { type ImageInputMode } from "@/components/admin/ImageInput";
 import {
@@ -27,7 +27,7 @@ type Category = {
   label: string;
   heading: string;
   slug: string;
-  committee_group: "current" | "past";
+  committee_group: "current" | "past" | "advisory" | "general";
   layout: "profile" | "simple";
   sort_order: number;
 };
@@ -42,6 +42,8 @@ type Member = {
   photo: string | null;
   working_place: string | null;
   degree: string | null;
+  specialist: string | null;
+  address: string | null;
   sort_order: number;
 };
 
@@ -63,11 +65,35 @@ const emptyMemberForm = {
   photo: "",
   working_place: "",
   degree: "",
+  specialist: "",
+  address: "",
   sort_order: "",
 };
 
-const groupClass = (group: Category["committee_group"]) =>
-  group === "current" ? "bg-green-100 text-green-800" : "bg-blue-100 text-blue-800";
+const groupClass = (group: Category["committee_group"]) => {
+  switch (group) {
+    case "current":
+      return "bg-green-100 text-green-800";
+    case "past":
+      return "bg-blue-100 text-blue-800";
+    case "advisory":
+      return "bg-purple-100 text-purple-800";
+    case "general":
+      return "bg-amber-100 text-amber-800";
+    default:
+      return "bg-gray-100 text-gray-800";
+  }
+};
+
+const nextMemberSortOrder = (members: Member[], categoryId: string) => {
+  const orders = members
+    .filter((member) => member.category_id === categoryId)
+    .map((member) => member.sort_order ?? 0);
+
+  return (orders.length > 0 ? Math.max(...orders) : 0) + 1;
+};
+
+const MEMBER_TABLE_COLUMNS = 13;
 
 function scrollToForm(ref: React.RefObject<HTMLDivElement | null>) {
   requestAnimationFrame(() => {
@@ -146,6 +172,21 @@ export default function CommitteeAdmin() {
 
   const categoryMap = Object.fromEntries(categories.map((c) => [c.id, c]));
 
+  const memberGroups = useMemo(() => {
+    const sortedCategories = [...categories].sort(
+      (a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0)
+    );
+
+    return sortedCategories
+      .map((category) => ({
+        category,
+        members: members
+          .filter((member) => member.category_id === category.id)
+          .sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0)),
+      }))
+      .filter((group) => group.members.length > 0);
+  }, [categories, members]);
+
   const load = async () => {
     setLoading(true);
     const supabase = createClient();
@@ -215,7 +256,7 @@ export default function CommitteeAdmin() {
       ...emptyMemberForm,
       category_id: categories[0]?.id ?? "",
       sort_order: String(
-        members.filter((m) => m.category_id === categories[0]?.id).length + 1
+        nextMemberSortOrder(members, categories[0]?.id ?? "")
       ),
     });
     setEditingMember(false);
@@ -237,6 +278,8 @@ export default function CommitteeAdmin() {
       photo: member.photo ?? "",
       working_place: member.working_place ?? "",
       degree: member.degree ?? "",
+      specialist: member.specialist ?? "",
+      address: member.address ?? "",
       sort_order: String(member.sort_order ?? 0),
     });
     setEditingMember(true);
@@ -329,11 +372,11 @@ export default function CommitteeAdmin() {
         photo: photoPath || null,
         working_place: memberForm.working_place.trim() || null,
         degree: memberForm.degree.trim() || null,
-        specialist: null,
-        address: null,
+        specialist: memberForm.specialist.trim() || null,
+        address: memberForm.address.trim() || null,
         sort_order: editingMember
           ? Number(memberForm.sort_order || 0)
-          : members.filter((m) => m.category_id === memberForm.category_id).length + 1,
+          : nextMemberSortOrder(members, memberForm.category_id),
       };
 
       const { error } = editingMember
@@ -400,7 +443,7 @@ export default function CommitteeAdmin() {
     <div className="space-y-6">
       <AdminPageHeader
         title="Executive Committee"
-        description="Manage committee sections and members for current and past executive pages."
+        description="Manage committee sections and members for executive, advisory board, and general member pages."
         action={
           !showMemberForm ? (
             <button
@@ -538,6 +581,31 @@ export default function CommitteeAdmin() {
                 </div>
               </div>
 
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div>
+                  <label className={labelClass}>Specialist</label>
+                  <input
+                    value={memberForm.specialist}
+                    onChange={(event) =>
+                      setMemberForm({ ...memberForm, specialist: event.target.value })
+                    }
+                    placeholder="e.g. Colorectal Surgeon"
+                    className={inputClass}
+                  />
+                </div>
+                <div>
+                  <label className={labelClass}>Address</label>
+                  <input
+                    value={memberForm.address}
+                    onChange={(event) =>
+                      setMemberForm({ ...memberForm, address: event.target.value })
+                    }
+                    placeholder="e.g. Kathmandu, Nepal"
+                    className={inputClass}
+                  />
+                </div>
+              </div>
+
               <div>
                 <label className={labelClass}>Photo</label>
                 <ImageInput
@@ -567,6 +635,9 @@ export default function CommitteeAdmin() {
       <AdminCard
         title={`Members (${members.length})`}
       >
+        <p className="mb-4 text-xs text-gray-500">
+          Section order restarts in each committee section (1, 2, 3 per section).
+        </p>
         {loading ? (
           <p className="text-sm text-gray-500">Loading...</p>
         ) : members.length === 0 ? (
@@ -583,16 +654,16 @@ export default function CommitteeAdmin() {
           </div>
         ) : (
           <div className="overflow-x-auto rounded-lg border border-gray-200">
-            <table className="min-w-full divide-y divide-gray-200 text-sm">
+            <table className="w-full min-w-[960px] table-fixed divide-y divide-gray-200 text-sm">
               <thead className="bg-gray-50">
                 <tr>
-                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">
-                    Order
+                  <th className="w-24 px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">
+                    Section Order
                   </th>
                   <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">
                     Photo
                   </th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">
+                  <th className="w-[140px] max-w-[160px] px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">
                     Name
                   </th>
                   <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">
@@ -607,7 +678,7 @@ export default function CommitteeAdmin() {
                   <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">
                     Phone
                   </th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">
+                  <th className="min-w-[220px] w-[20%] px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">
                     Email
                   </th>
                   <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">
@@ -616,117 +687,148 @@ export default function CommitteeAdmin() {
                   <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">
                     Degree
                   </th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">
+                    Specialist
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">
+                    Address
+                  </th>
                   <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-gray-500">
                     Actions
                   </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100 bg-white">
-                {members.map((member) => {
-                  const category = categoryMap[member.category_id];
-                  const isEditingRow = editingMember && memberForm.id === member.id;
-
-                  return (
-                    <tr
-                      key={member.id}
-                      id={`committee-member-row-${member.id}`}
-                      className={[
-                        "transition",
-                        isEditingRow
-                          ? "bg-green-50 ring-2 ring-inset ring-green-400"
-                          : "hover:bg-gray-50/80",
-                      ].join(" ")}
-                    >
-                      <td className="whitespace-nowrap px-4 py-4 align-top font-medium text-gray-700">
-                        {member.sort_order}
-                      </td>
-                      <td className="px-4 py-4 align-top">
-                        <div className="h-11 w-11 overflow-hidden rounded-full border border-gray-200 bg-gray-100">
-                          {member.photo ? (
-                            <img
-                              src={getMediaUrl(member.photo)}
-                              alt={member.name}
-                              className="h-full w-full object-cover object-top"
-                            />
-                          ) : (
-                            <div className="flex h-full w-full items-center justify-center text-xs text-gray-400">
-                              —
-                            </div>
-                          )}
-                        </div>
-                      </td>
-                      <td className="whitespace-nowrap px-4 py-4 align-top font-semibold text-gray-900">
-                        <div className="flex flex-wrap items-center gap-2">
-                          {member.name}
-                          {isEditingRow ? (
-                            <span className="rounded-full bg-green-600 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-white">
-                              Editing
-                            </span>
-                          ) : null}
-                        </div>
-                      </td>
-                      <td className="px-4 py-4 align-top text-gray-700">{member.role_title}</td>
-                      <td className="px-4 py-4 align-top text-gray-700">
-                        {category?.heading ?? "—"}
-                      </td>
-                      <td className="px-4 py-4 align-top">
-                        {category ? (
-                          <span
-                            className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold capitalize ${groupClass(category.committee_group)}`}
-                          >
-                            {category.committee_group}
-                          </span>
-                        ) : (
-                          "—"
-                        )}
-                      </td>
-                      <td className="whitespace-nowrap px-4 py-4 align-top text-gray-700">
-                        {member.phone ?? "—"}
-                      </td>
-                      <td className="max-w-[160px] px-4 py-4 align-top">
-                        {member.email ? (
-                          <a
-                            href={`mailto:${member.email}`}
-                            className="break-all text-gray-700 hover:text-green-700"
-                          >
-                            {member.email}
-                          </a>
-                        ) : (
-                          "—"
-                        )}
-                      </td>
-                      <td className="max-w-[140px] px-4 py-4 align-top text-gray-700">
-                        {member.working_place ?? "—"}
-                      </td>
-                      <td className="px-4 py-4 align-top text-gray-700">{member.degree ?? "—"}</td>
-                      <td className="px-4 py-4 align-top">
-                        <div className="flex justify-end gap-2">
-                          <button
-                            type="button"
-                            aria-label={`Edit ${member.name}`}
-                            title="Edit member"
-                            className={[
-                              btnIconClass,
-                              isEditingRow ? "border-green-500 bg-green-100 text-green-800" : "",
-                            ].join(" ")}
-                            onClick={() => openEditMemberForm(member)}
-                          >
-                            <FaPen className="h-3.5 w-3.5" />
-                          </button>
-                          <button
-                            type="button"
-                            aria-label={`Delete ${member.name}`}
-                            title="Delete member"
-                            className={btnIconDangerClass}
-                            onClick={() => deleteMember(member.id)}
-                          >
-                            <FaTrash className="h-3.5 w-3.5" />
-                          </button>
-                        </div>
+                {memberGroups.map(({ category, members: sectionMembers }) => (
+                  <Fragment key={category.id}>
+                    <tr className="bg-[#e4f7ef]/70">
+                      <td
+                        colSpan={MEMBER_TABLE_COLUMNS}
+                        className="px-4 py-2.5 text-xs font-semibold uppercase tracking-wide text-green-800"
+                      >
+                        {category.heading}
+                        <span className="ml-2 font-normal normal-case text-gray-500">
+                          ({category.committee_group})
+                        </span>
                       </td>
                     </tr>
-                  );
-                })}
+                    {sectionMembers.map((member) => {
+                      const isEditingRow =
+                        editingMember && memberForm.id === member.id;
+
+                      return (
+                        <tr
+                          key={member.id}
+                          id={`committee-member-row-${member.id}`}
+                          className={[
+                            "transition",
+                            isEditingRow
+                              ? "bg-green-50 ring-2 ring-inset ring-green-400"
+                              : "hover:bg-gray-50/80",
+                          ].join(" ")}
+                        >
+                          <td className="whitespace-nowrap px-4 py-4 align-top font-medium text-gray-700">
+                            {member.sort_order}
+                          </td>
+                          <td className="px-4 py-4 align-top">
+                            <div className="h-11 w-11 overflow-hidden rounded-full border border-gray-200 bg-gray-100">
+                              {member.photo ? (
+                                <img
+                                  src={getMediaUrl(member.photo)}
+                                  alt={member.name}
+                                  className="h-full w-full object-cover object-top"
+                                />
+                              ) : (
+                                <div className="flex h-full w-full items-center justify-center text-xs text-gray-400">
+                                  —
+                                </div>
+                              )}
+                            </div>
+                          </td>
+                          <td className="max-w-[160px] px-4 py-4 align-top font-semibold text-gray-900">
+                            <div className="flex min-w-0 items-center gap-2">
+                              <span className="truncate" title={member.name}>
+                                {member.name}
+                              </span>
+                              {isEditingRow ? (
+                                <span className="shrink-0 rounded-full bg-green-600 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-white">
+                                  Editing
+                                </span>
+                              ) : null}
+                            </div>
+                          </td>
+                          <td className="px-4 py-4 align-top text-gray-700">
+                            {member.role_title}
+                          </td>
+                          <td className="px-4 py-4 align-top text-gray-700">
+                            {category.heading}
+                          </td>
+                          <td className="px-4 py-4 align-top">
+                            <span
+                              className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold capitalize ${groupClass(category.committee_group)}`}
+                            >
+                              {category.committee_group}
+                            </span>
+                          </td>
+                          <td className="whitespace-nowrap px-4 py-4 align-top text-gray-700">
+                            {member.phone ?? "—"}
+                          </td>
+                          <td className="min-w-[220px] px-4 py-4 align-top">
+                            {member.email ? (
+                              <a
+                                href={`mailto:${member.email}`}
+                                className="break-all text-gray-700 hover:text-green-700"
+                              >
+                                {member.email}
+                              </a>
+                            ) : (
+                              "—"
+                            )}
+                          </td>
+                          <td className="max-w-[140px] px-4 py-4 align-top text-gray-700">
+                            {member.working_place ?? "—"}
+                          </td>
+                          <td className="px-4 py-4 align-top text-gray-700">
+                            {member.degree ?? "—"}
+                          </td>
+                          <td className="max-w-[140px] px-4 py-4 align-top text-gray-700">
+                            {member.specialist ?? "—"}
+                          </td>
+                          <td className="max-w-[140px] px-4 py-4 align-top text-gray-700">
+                            {member.address ?? "—"}
+                          </td>
+                          <td className="px-4 py-4 align-top">
+                            <div className="flex justify-end gap-2">
+                              <button
+                                type="button"
+                                aria-label={`Edit ${member.name}`}
+                                title="Edit member"
+                                className={[
+                                  btnIconClass,
+                                  isEditingRow
+                                    ? "border-green-500 bg-green-100 text-green-800"
+                                    : "",
+                                ].join(" ")}
+                                onClick={() => openEditMemberForm(member)}
+                              >
+                                <FaPen className="h-3.5 w-3.5" />
+                              </button>
+                              <button
+                                type="button"
+                                aria-label={`Delete ${member.name}`}
+                                title="Delete member"
+                                className={btnIconDangerClass}
+                                onClick={() => deleteMember(member.id)}
+                              >
+                                <FaTrash className="h-3.5 w-3.5" />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </Fragment>
+                ))}
               </tbody>
             </table>
           </div>
@@ -791,8 +893,10 @@ export default function CommitteeAdmin() {
                       }
                       className={inputClass}
                     >
-                      <option value="current">Current</option>
-                      <option value="past">Past</option>
+                      <option value="current">Current (Executive)</option>
+                      <option value="past">Past (Executive)</option>
+                      <option value="advisory">Advisory Board</option>
+                      <option value="general">General Members</option>
                     </select>
                   </div>
                   <div>
@@ -831,7 +935,7 @@ export default function CommitteeAdmin() {
           <p className="text-sm text-gray-500">No sections yet.</p>
         ) : (
           <div className="overflow-x-auto rounded-lg border border-gray-200">
-            <table className="min-w-full divide-y divide-gray-200 text-sm">
+            <table className="w-full min-w-[720px] divide-y divide-gray-200 text-sm">
               <thead className="bg-gray-50">
                 <tr>
                   <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">

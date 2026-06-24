@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import {
   FaBriefcase,
   FaEnvelope,
+  FaFileExcel,
   FaPen,
   FaPhone,
   FaTimes,
@@ -19,8 +20,10 @@ import {
   btnDangerClass,
   btnIconClass,
   btnIconDangerClass,
+  btnPrimaryClass,
   btnSecondaryClass,
 } from "@/lib/admin/config";
+import { exportApplicationsToXlsx } from "@/lib/admin/exportApplicationsXlsx";
 import { getMembershipFileSignedUrl } from "@/utils/supabase/membership";
 import { createClient } from "@/utils/supabase/client";
 
@@ -30,10 +33,19 @@ type MembershipApplication = {
   email: string;
   phone: string;
   position: string;
+  college_name: string | null;
+  passing_year: string | null;
+  nmc_reg_no: string | null;
+  current_working_place: string | null;
+  bloodgroup: string | null;
+  address: string | null;
   profile_image: string;
   voucher_image: string;
   created_at: string;
 };
+
+const displayValue = (value: string | null | undefined) =>
+  value?.trim() ? value : "—";
 
 type RowImageUrls = {
   profile: string;
@@ -56,6 +68,7 @@ export default function ApplicationsAdmin() {
   const [rowImages, setRowImages] = useState<Record<string, RowImageUrls>>({});
   const [loadingImages, setLoadingImages] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [exporting, setExporting] = useState(false);
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
 
   const load = async () => {
@@ -157,11 +170,44 @@ export default function ApplicationsAdmin() {
     load();
   };
 
+  const handleExport = () => {
+    if (rows.length === 0) {
+      setMessage({ type: "error", text: "No applications to export." });
+      return;
+    }
+
+    setExporting(true);
+    setMessage(null);
+
+    try {
+      exportApplicationsToXlsx(rows);
+      setMessage({ type: "success", text: "Applications exported to Excel." });
+    } catch (err) {
+      setMessage({
+        type: "error",
+        text: err instanceof Error ? err.message : "Failed to export applications.",
+      });
+    } finally {
+      setExporting(false);
+    }
+  };
+
   return (
     <div>
       <AdminPageHeader
         title="Membership Applications"
         description="Applications submitted through the register member form."
+        action={
+          <button
+            type="button"
+            onClick={handleExport}
+            disabled={loading || exporting || rows.length === 0}
+            className={btnPrimaryClass}
+          >
+            <FaFileExcel className="mr-2 h-4 w-4" />
+            {exporting ? "Exporting..." : "Export XLSX"}
+          </button>
+        }
       />
 
       {message ? <AdminAlert type={message.type} message={message.text} /> : null}
@@ -175,7 +221,7 @@ export default function ApplicationsAdmin() {
           </div>
         ) : (
           <div className="overflow-x-auto rounded-lg border border-gray-200">
-            <table className="min-w-full divide-y divide-gray-200 text-sm">
+            <table className="w-full min-w-[720px] divide-y divide-gray-200 text-sm">
               <thead className="bg-gray-50">
                 <tr>
                   <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">
@@ -189,6 +235,12 @@ export default function ApplicationsAdmin() {
                   </th>
                   <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">
                     Position
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">
+                    College
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">
+                    NMC No.
                   </th>
                   <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">
                     Profile Photo
@@ -210,7 +262,7 @@ export default function ApplicationsAdmin() {
                     <td className="px-4 py-4 align-top font-semibold text-gray-900">
                       {row.name}
                     </td>
-                    <td className="max-w-[180px] px-4 py-4 align-top">
+                    <td className="min-w-[160px] px-4 py-4 align-top">
                       <a
                         href={`mailto:${row.email}`}
                         className="break-all text-gray-700 hover:text-green-700"
@@ -227,6 +279,12 @@ export default function ApplicationsAdmin() {
                       </a>
                     </td>
                     <td className="px-4 py-4 align-top text-gray-700">{row.position}</td>
+                    <td className="min-w-[120px] px-4 py-4 align-top text-gray-700">
+                      {displayValue(row.college_name)}
+                    </td>
+                    <td className="whitespace-nowrap px-4 py-4 align-top text-gray-700">
+                      {displayValue(row.nmc_reg_no)}
+                    </td>
                     <td className="px-4 py-4 align-top">
                       <div className="h-14 w-14 overflow-hidden rounded-lg border border-gray-200 bg-gray-100">
                         {rowImages[row.id]?.profile ? (
@@ -328,16 +386,49 @@ export default function ApplicationsAdmin() {
                   href={`tel:${selected.phone}`}
                   className="flex items-center gap-3 rounded-lg border border-gray-200 px-4 py-3 text-gray-700 hover:border-green-300 hover:bg-green-50"
                 >
-                  <FaPhone className="h-4 w-4 text-green-600" />
+                  <FaPhone className="h-4 w-4 shrink-0 text-green-600" />
                   {selected.phone}
                 </a>
                 <a
                   href={`mailto:${selected.email}`}
                   className="flex items-center gap-3 rounded-lg border border-gray-200 px-4 py-3 text-gray-700 hover:border-green-300 hover:bg-green-50"
                 >
-                  <FaEnvelope className="h-4 w-4 text-green-600" />
+                  <FaEnvelope className="h-4 w-4 shrink-0 text-green-600" />
                   <span className="truncate">{selected.email}</span>
                 </a>
+              </div>
+
+              <div className="grid gap-3 sm:grid-cols-2">
+                {[
+                  { label: "College Name", value: selected.college_name },
+                  { label: "Passing Year", value: selected.passing_year },
+                  { label: "NMC Reg. No.", value: selected.nmc_reg_no },
+                  { label: "Blood Group", value: selected.bloodgroup },
+                  {
+                    label: "Current Working Place",
+                    value: selected.current_working_place,
+                  },
+                ].map((item) => (
+                  <div
+                    key={item.label}
+                    className="rounded-lg border border-gray-200 bg-gray-50 px-4 py-3"
+                  >
+                    <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+                      {item.label}
+                    </p>
+                    <p className="mt-1 text-sm font-medium text-gray-900">
+                      {displayValue(item.value)}
+                    </p>
+                  </div>
+                ))}
+                <div className="rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 sm:col-span-2">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+                    Address
+                  </p>
+                  <p className="mt-1 text-sm font-medium text-gray-900">
+                    {displayValue(selected.address)}
+                  </p>
+                </div>
               </div>
 
               <div className="grid gap-4 sm:grid-cols-2">

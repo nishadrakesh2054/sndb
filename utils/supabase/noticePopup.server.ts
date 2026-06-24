@@ -6,7 +6,7 @@ export async function getActiveNoticePopupServer(): Promise<NoticePopup | null> 
 
   const { data, error } = await supabase
     .from("notice_popups")
-    .select("id, image, is_active, created_at, updated_at")
+    .select("id, image, link, is_active, created_at, updated_at")
     .eq("is_active", true)
     .order("created_at", { ascending: false })
     .limit(1)

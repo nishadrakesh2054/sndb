@@ -16,7 +16,11 @@ export async function revalidateSitePaths(paths: string[]) {
 
 export const publicPaths = {
   home: "/",
-  about: "/about",
+  about: "/about/history",
+  aboutHistory: "/about/history",
+  aboutRegistrations: "/about/registrations",
+  aboutAffiliations: "/about/affiliations",
+  aboutFoundersMessage: "/about/founders-message",
   blog: "/blog",
   blogPost: (slug: string) => `/blog/${slug}`,
   notice: "/notice",
@@ -25,6 +29,8 @@ export const publicPaths = {
   gallery: "/gallery",
   executiveCommittee: "/executive-committee",
   pastCommittee: "/past-committee",
+  advisoryBoard: "/members/advisory-board",
+  generalMembers: "/members/general-members",
 } as const;
 
 export async function revalidateHeroContent() {
@@ -59,9 +65,19 @@ export async function revalidateCommitteeContent() {
   await revalidateSitePaths([
     publicPaths.executiveCommittee,
     publicPaths.pastCommittee,
+    publicPaths.advisoryBoard,
+    publicPaths.generalMembers,
   ]);
 }
 
 export async function revalidateAboutContent() {
-  await revalidateSitePaths([publicPaths.home, publicPaths.about]);
+  await revalidateSitePaths([
+    publicPaths.home,
+    publicPaths.about,
+    publicPaths.aboutHistory,
+    publicPaths.aboutRegistrations,
+    publicPaths.aboutAffiliations,
+    publicPaths.aboutFoundersMessage,
+    "/about",
+  ]);
 }

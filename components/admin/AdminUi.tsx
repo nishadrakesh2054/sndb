@@ -53,7 +53,7 @@ export function AdminCard({
   children: ReactNode;
 }) {
   return (
-    <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
+    <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm sm:p-6">
       {title ? (
         <h2 className="mb-4 text-lg font-semibold text-gray-900">{title}</h2>
       ) : null}
@@ -70,14 +70,14 @@ export function AdminTable({
   children: ReactNode;
 }) {
   return (
-    <div className="overflow-x-auto">
-      <table className="min-w-full divide-y divide-gray-200 text-sm">
+    <div className="overflow-x-auto rounded-lg border border-gray-200">
+      <table className="w-full min-w-[720px] divide-y divide-gray-200 text-sm">
         <thead className="bg-gray-50">
           <tr>
             {headers.map((header) => (
               <th
                 key={header}
-                className="px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-gray-500"
+                className="whitespace-nowrap px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500"
               >
                 {header}
               </th>
