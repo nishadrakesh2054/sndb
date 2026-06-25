@@ -95,6 +95,27 @@ export async function submitMembershipApplication(
   if (error) {
     throw error;
   }
+
+  try {
+    await fetch("/api/membership/notify", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        name: data.name.trim(),
+        email: data.email.trim(),
+        phone: data.phone.trim(),
+        position: data.position.trim(),
+        college_name: data.college_name.trim(),
+        passing_year: data.passing_year.trim(),
+        nmc_reg_no: data.nmc_reg_no.trim(),
+        current_working_place: data.current_working_place.trim(),
+        bloodgroup: data.bloodgroup.trim(),
+        address: data.address.trim(),
+      }),
+    });
+  } catch (mailError) {
+    console.error("Membership notification email failed:", mailError);
+  }
 }
 
 export async function getMembershipFileSignedUrl(
